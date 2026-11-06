@@ -1,89 +1,87 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-Hant">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#081c2d">
-<title>3D Interactive Island | Portfolio</title>
-<link rel="stylesheet" href="./style.css">
-
-<!-- Three.js CDN：使用 Import Map 載入 ES Modules -->
-<script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#050711">
+  <meta name="description" content="My Portfolio Universe — 3D interactive portfolio">
+  <title>My Portfolio Universe</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/style.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+      }
     }
-  }
   </script>
 </head>
-
 <body>
-<main class="page-shell">
-  
-  <!-- 網站頁首 -->
-  <header class="site-header">
-    <a class="brand" href="#"> MY ISLAND <span>/ PORTFOLIO</span>
-    </a>
-    <div class="header-hint"> 3D INTERACTIVE PORTFOLIO </div>
-  </header>
-  
-  <!-- 首頁標題 -->
-  <section class="intro">
-    <p class="eyebrow">WELCOME TO MY WORLD</p>
-    <h1> Explore My<br>
-      <em>Creative Island.</em>
-    </h1>
-    <p class="intro-copy"> 在島嶼上探索我的創作與專案。<br>
-      拖曳旋轉視角，點擊作品開始探索。 </p>
-  </section>
-  
-  <!-- Three.js 3D 場景容器 -->
-  <div id="scene-container"></div>
-  
-  <!-- 操作提示 -->
-  <div class="scene-guide">
-    <span class="guide-dot"></span> DRAG TO ROTATE <span class="guide-divider">·</span> SCROLL TO ZOOM </div>
-  
-  <!-- 專案介紹 Modal -->
-  <section
-      class="project-modal"
-      id="project-modal"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="modal-title"
-      aria-hidden="true"
-    >
-    <button
-        class="modal-close"
-        id="modal-close"
-        type="button"
-        aria-label="關閉專案介紹"
-      > × </button>
-    <p class="modal-kicker" id="modal-category"> FEATURED PROJECT </p>
-    <h2 id="modal-title">Project title</h2>
-    <p
-        class="modal-description"
-        id="modal-description"
-      ></p>
-    <a
-        class="modal-link"
-        id="modal-link"
-        href="#"
-        target="_blank"
-        rel="noopener noreferrer"
-      > VIEW PROJECT <span>↗</span>
-    </a>
-  </section>
-  
-  <!-- 網站頁尾 -->
-  <footer class="site-footer">
-    <span>© 2026 MY PORTFOLIO</span>
-    <span>MADE WITH THREE.JS</span>
-  </footer>
-</main>
+  <div id="app">
+    <canvas id="universe" aria-label="可拖曳旋轉的 3D 作品集宇宙"></canvas>
 
-<!-- 引入 JavaScript ES Module -->
-<script type="module" src="./js/main.js"></script>
+    <header class="topbar">
+      <a class="brand" href="#" id="homeButton" aria-label="回到宇宙首頁">
+        <span class="brand-mark">✦</span>
+        <span>MY PORTFOLIO<span class="brand-sub">UNIVERSE / 2026</span></span>
+      </a>
+      <div class="topbar-right">
+        <span class="live-dot"></span><span class="status">INTERACTIVE SPACE</span>
+        <button class="icon-button" id="resetView" title="回到全景" aria-label="回到全景">⌖</button>
+      </div>
+    </header>
+
+    <section class="intro" id="intro">
+      <p class="eyebrow">A PERSONAL CREATIVE UNIVERSE</p>
+      <h1>探索我的<br><span>數位作品宇宙</span></h1>
+      <p class="intro-copy">拖曳旋轉星系，點擊星球，探索不同領域的作品。</p>
+      <div class="intro-hint"><span class="mouse-icon">⌖</span> DRAG TO EXPLORE <i></i> CLICK A PLANET</div>
+    </section>
+
+    <aside class="planet-legend" id="planetLegend" aria-label="星球分類">
+      <p class="legend-title">EXPLORE PLANETS <span>05</span></p>
+      <div id="legendItems"></div>
+    </aside>
+
+    <div class="bottom-note"><span>✦</span> DRAG TO ROTATE <b>·</b> SCROLL TO ZOOM <b>·</b> CLICK TO DISCOVER</div>
+    <div class="crosshair" aria-hidden="true">+</div>
+
+    <section class="planet-panel" id="planetPanel" aria-hidden="true">
+      <div class="panel-backdrop" data-close></div>
+      <div class="panel-card">
+        <button class="close-button" id="closePanel" aria-label="關閉">×</button>
+        <div class="panel-kicker" id="panelKicker">PLANET 01</div>
+        <h2 id="panelTitle">生涯探索島</h2>
+        <p class="panel-description" id="panelDescription"></p>
+        <div class="panel-meta"><span id="projectCount">38 PROJECTS</span><span>PROJECT ARCHIVE</span></div>
+        <div class="project-tools">
+          <input id="projectSearch" type="search" placeholder="搜尋作品名稱、年份或標籤…" autocomplete="off">
+          <select id="yearFilter" aria-label="依年份篩選"><option value="">全部年份</option></select>
+        </div>
+        <div class="project-list" id="projectList"></div>
+        <p class="panel-footnote">作品圖片可依原始專案資料夾補上；目前先呈現作品資料與可用連結。</p>
+      </div>
+    </section>
+
+    <section class="project-modal" id="projectModal" aria-hidden="true">
+      <div class="modal-backdrop" data-project-close></div>
+      <article class="project-modal-card">
+        <button class="close-button" id="closeProject" aria-label="關閉">×</button>
+        <div class="project-modal-kicker" id="detailKicker">PROJECT / 00001</div>
+        <h2 id="detailTitle"></h2>
+        <div class="detail-tags" id="detailTags"></div>
+        <p class="detail-year" id="detailYear"></p>
+        <div class="detail-gallery" id="detailGallery" aria-label="專案網站截圖"></div>
+        <a class="project-link is-disabled" id="detailLink" href="#" target="_blank" rel="noopener noreferrer" aria-disabled="true">尚無公開作品連結</a>
+      </article>
+    </section>
+
+    <div class="toast" id="toast" role="status"></div>
+    <div class="loading" id="loading"><div class="loader-orbit"><span></span></div><p>BUILDING YOUR UNIVERSE</p></div>
+  </div>
+  <script type="module" src="./js/main.js"></script>
 </body>
 </html>

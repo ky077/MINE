@@ -41,3 +41,13 @@ Three.js 透過 jsDelivr CDN 載入，因此執行時需要網路連線。
 
 ## 分類說明
 作品以目前確認的五大主題作為單一主要分類。若某作品的實際內容與名稱不一致，可在 `js/data.js` 修改該筆 `planet` 值。
+
+
+## 加入生涯探索島 GLB 模型
+1. 先使用 Blender 執行 `career_island_generator.py`，產生 `career_exploration_island.glb`。
+2. 將 GLB 複製到本網站的 `models` 資料夾。
+3. 檔名請保持 `career_exploration_island.glb`，不要改名。
+4. 使用 Live Server 或 `python -m http.server 8000` 啟動網站，再開啟 `http://localhost:8000`。
+5. 載入成功時，生涯探索島會自動以 GLB 模型取代原本的程序化示意島；其他四顆星球與作品互動維持原樣。
+
+若 GLB 尚未放入 `models`，網站會先顯示原本的程序化示意島，不會因此整個網站無法啟動。

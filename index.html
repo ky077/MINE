@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#081c2d">
+<title>3D Interactive Island | Portfolio</title>
+<link rel="stylesheet" href="./style.css">
+
+<!-- Three.js CDN：使用 Import Map 載入 ES Modules -->
+<script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+
+<body>
+<main class="page-shell">
+  
+  <!-- 網站頁首 -->
+  <header class="site-header">
+    <a class="brand" href="#"> MY ISLAND <span>/ PORTFOLIO</span>
+    </a>
+    <div class="header-hint"> 3D INTERACTIVE PORTFOLIO </div>
+  </header>
+  
+  <!-- 首頁標題 -->
+  <section class="intro">
+    <p class="eyebrow">WELCOME TO MY WORLD</p>
+    <h1> Explore My<br>
+      <em>Creative Island.</em>
+    </h1>
+    <p class="intro-copy"> 在島嶼上探索我的創作與專案。<br>
+      拖曳旋轉視角，點擊作品開始探索。 </p>
+  </section>
+  
+  <!-- Three.js 3D 場景容器 -->
+  <div id="scene-container"></div>
+  
+  <!-- 操作提示 -->
+  <div class="scene-guide">
+    <span class="guide-dot"></span> DRAG TO ROTATE <span class="guide-divider">·</span> SCROLL TO ZOOM </div>
+  
+  <!-- 專案介紹 Modal -->
+  <section
+      class="project-modal"
+      id="project-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+      aria-hidden="true"
+    >
+    <button
+        class="modal-close"
+        id="modal-close"
+        type="button"
+        aria-label="關閉專案介紹"
+      > × </button>
+    <p class="modal-kicker" id="modal-category"> FEATURED PROJECT </p>
+    <h2 id="modal-title">Project title</h2>
+    <p
+        class="modal-description"
+        id="modal-description"
+      ></p>
+    <a
+        class="modal-link"
+        id="modal-link"
+        href="#"
+        target="_blank"
+        rel="noopener noreferrer"
+      > VIEW PROJECT <span>↗</span>
+    </a>
+  </section>
+  
+  <!-- 網站頁尾 -->
+  <footer class="site-footer">
+    <span>© 2026 MY PORTFOLIO</span>
+    <span>MADE WITH THREE.JS</span>
+  </footer>
+</main>
+
+<!-- 引入 JavaScript ES Module -->
+<script type="module" src="./js/main.js"></script>
+</body>
+</html>

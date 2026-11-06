@@ -6,17 +6,17 @@ export function createScene(canvas) {
   scene.fog = new THREE.FogExp2(0x050711, 0.0038);
 
   const camera = new THREE.PerspectiveCamera(48, innerWidth / innerHeight, 0.1, 500);
-  camera.position.set(0, 25, 49);
+  camera.position.set(0, 17, 49);
 
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.setSize(innerWidth, innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.12;
+  renderer.toneMappingExposure = 1.32;
 
-  scene.add(new THREE.AmbientLight(0x8295d0, 0.8));
-  const key = new THREE.PointLight(0x9bb7ff, 1600, 180);
+  scene.add(new THREE.AmbientLight(0xffffff, 1.55));
+  const key = new THREE.PointLight(0xe9f5ff, 1700, 180);
   key.position.set(-18, 25, 22);
   scene.add(key);
   const fill = new THREE.PointLight(0x8a63ff, 850, 130);

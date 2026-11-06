@@ -1,347 +1,329 @@
 import * as THREE from 'three';
 
-// Each planet is a small spherical diorama: surface biomes, paths and landmark architecture.
-const UP = new THREE.Vector3(0, 1, 0);
-const mats = {};
-function mat(color, roughness=.82, metalness=.05, emissive=0x000000, intensity=0) {
-  const key=[color,roughness,metalness,emissive,intensity].join(':');
-  if (!mats[key]) mats[key]=new THREE.MeshStandardMaterial({color,roughness,metalness,emissive,emissiveIntensity:intensity});
-  return mats[key];
+// Five small dioramas share a silhouette, while their landmarks tell the story of each field.
+const materials = new Map();
+function paint(color, glow = false) {
+  const key = `${color}:${glow}`;
+  if (!materials.has(key)) materials.set(key, new THREE.MeshStandardMaterial({
+    color, roughness: glow ? .42 : .88, metalness: glow ? .18 : 0,
+    flatShading: true, emissive: glow ? color : 0x000000,
+    emissiveIntensity: glow ? .38 : 0,
+    side: THREE.DoubleSide
+  }));
+  return materials.get(key);
 }
-function surfacePoint(dir, radius, offset=0) {
-  return new THREE.Vector3(dir[0],dir[1],dir[2]).normalize().multiplyScalar(radius+offset);
-}
-function attach(parent, object, dir, radius, offset=0) {
-  const normal=new THREE.Vector3(...dir).normalize();
-  object.position.copy(normal.clone().multiplyScalar(radius+offset));
-  object.quaternion.setFromUnitVectors(UP,normal);
+function add(parent, geometry, color, x, y, z, glow = false) {
+  const object = new THREE.Mesh(geometry, paint(color, glow));
+  object.position.set(x, y, z);
   parent.add(object);
   return object;
 }
-function addPatch(parent,radius,dir,color,sx,sz,offset=.025) {
-  const mesh=new THREE.Mesh(new THREE.SphereGeometry(1,24,16),mat(color));
-  mesh.scale.set(sx,.055,sz);
-  return attach(parent,mesh,dir,radius,offset);
-}
-function addTree(parent,radius,dir,scale=1,leaf=0x4c9a68) {
-  const g=new THREE.Group();
-  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.035*scale,.055*scale,.25*scale,7),mat(0x76513a));
-  trunk.position.y=.12*scale; g.add(trunk);
-  const crown=new THREE.Mesh(new THREE.IcosahedronGeometry(.18*scale,1),mat(leaf,.9,0,leaf,.08));
-  crown.position.y=.32*scale; g.add(crown);
-  const crown2=new THREE.Mesh(new THREE.IcosahedronGeometry(.12*scale,1),mat(leaf));
-  crown2.position.set(.08*scale,.43*scale,.025*scale); g.add(crown2);
-  attach(parent,g,dir,radius,.035);
-}
-function addPine(parent,radius,dir,scale=1,color=0x3b8069) {
-  const g=new THREE.Group();
-  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.035*scale,.05*scale,.18*scale,6),mat(0x6e503a));
-  trunk.position.y=.09*scale; g.add(trunk);
-  for(let i=0;i<3;i++){
-    const cone=new THREE.Mesh(new THREE.ConeGeometry((.17-i*.035)*scale,.24*scale,7),mat(color));
-    cone.position.y=(.22+i*.105)*scale; g.add(cone);
-  }
-  attach(parent,g,dir,radius,.035);
-}
-function addBuilding(parent,radius,dir,opts={}) {
-  const {w=.42,h=.42,d=.38,color=0xe6e4dc,roof=0x566b9c,kind='tower'}=opts;
-  const g=new THREE.Group();
-  const body=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(color,.68,.12));
-  body.position.y=h/2; g.add(body);
-  if(kind==='pagoda'){
-    for(let i=0;i<3;i++){
-      const s=1-i*.19;
-      const cap=new THREE.Mesh(new THREE.CylinderGeometry(w*.78*s,w*.92*s,.09,8),mat(roof,.55,.18));
-      cap.position.y=h*(.36+i*.28); g.add(cap);
-      const tip=new THREE.Mesh(new THREE.ConeGeometry(.07*(1-i*.1),.2,7),mat(0xd9bd76,.5,.35));
-      tip.position.y=h*(.43+i*.28)+.09; g.add(tip);
-    }
-  } else if(kind==='dome'){
-    const dome=new THREE.Mesh(new THREE.SphereGeometry(w*.58,16,10,0,Math.PI*2,0,Math.PI/2),mat(roof,.48,.18));
-    dome.position.y=h; g.add(dome);
-  } else if(kind==='library'){
-    const roofMesh=new THREE.Mesh(new THREE.ConeGeometry(w*.78,.32,4),mat(roof,.55,.12));
-    roofMesh.position.y=h+.13; roofMesh.rotation.y=Math.PI/4; g.add(roofMesh);
-    for(let i=-1;i<=1;i++){
-      const win=new THREE.Mesh(new THREE.BoxGeometry(.045,.16,.012),mat(0x8ce3ef,.3,.2,0x59c8e8,.8));
-      win.position.set(i*w*.22,h*.55,d/2+.008); g.add(win);
-    }
-  } else {
-    const roofMesh=new THREE.Mesh(new THREE.ConeGeometry(w*.75,.22,5),mat(roof,.55,.15));
-    roofMesh.position.y=h+.11; g.add(roofMesh);
-  }
-  // luminous windows on the front face
-  for(let i=0;i<2;i++){
-    const win=new THREE.Mesh(new THREE.BoxGeometry(.055,.09,.012),mat(0xffdf9a,.35,.1,0xffb94d,.45));
-    win.position.set((i-.5)*.14,h*.52,d/2+.01); g.add(win);
-  }
-  attach(parent,g,dir,radius,.045);
-  return g;
-}
-function addTower(parent,radius,dir,color=0x9bdcff,height=.9) {
-  const g=new THREE.Group();
-  const stem=new THREE.Mesh(new THREE.CylinderGeometry(.09,.15,height,7),mat(0x34466d,.45,.35));
-  stem.position.y=height/2; g.add(stem);
-  const cap=new THREE.Mesh(new THREE.OctahedronGeometry(.2,1),mat(color,.25,.35,color,.75));
-  cap.position.y=height+.08; g.add(cap);
-  attach(parent,g,dir,radius,.04);
-}
-function addPath(parent,radius,dirs,color,width=.09) {
-  // A short curved path following the surface, represented by small connected pavers.
-  for(let i=0;i<dirs.length;i++){
-    const p=new THREE.Mesh(new THREE.SphereGeometry(1,10,8),mat(color,.95));
-    p.scale.set(width,.025,width*1.35);
-    attach(parent,p,dirs[i],radius,.06);
-  }
-}
-function addBook(parent,radius,dir,scale=1,color=0xe9d9b5) {
-  const g=new THREE.Group();
-  const cover=new THREE.Mesh(new THREE.BoxGeometry(.32*scale,.055*scale,.24*scale),mat(color,.65));
-  g.add(cover);
-  const pages=new THREE.Mesh(new THREE.BoxGeometry(.28*scale,.035*scale,.21*scale),mat(0xf5edda));
-  pages.position.y=.035*scale; g.add(pages);
-  const spine=new THREE.Mesh(new THREE.BoxGeometry(.035*scale,.065*scale,.25*scale),mat(0x8e5d4d));
-  spine.position.x=-.145*scale; g.add(spine);
-  attach(parent,g,dir,radius,.06);
-}
-function addCrystal(parent,radius,dir,color=0x8deaff,scale=1) {
-  const g=new THREE.Group();
-  const crystal=new THREE.Mesh(new THREE.OctahedronGeometry(.19*scale,0),mat(color,.25,.3,color,.5));
-  crystal.scale.y=1.8; crystal.position.y=.2*scale; g.add(crystal);
-  attach(parent,g,dir,radius,.035);
-}
-function addCloud(parent,radius,dir,scale=1) {
-  const g=new THREE.Group();
-  for(let i=0;i<4;i++){
-    const c=new THREE.Mesh(new THREE.SphereGeometry(.17*scale,12,8),new THREE.MeshBasicMaterial({color:0xe5f0ff,transparent:true,opacity:.32,depthWrite:false}));
-    c.position.set((i-1.5)*.19*scale,.06*scale,Math.sin(i*1.7)*.06*scale); g.add(c);
-  }
-  attach(parent,g,dir,radius,.32);
-}
-function makePlanetTexture(baseColor,accentColor,planetId) {
-  const canvas=document.createElement('canvas'); canvas.width=1024; canvas.height=512;
-  const ctx=canvas.getContext('2d');
-  const grad=ctx.createLinearGradient(0,0,1024,512); grad.addColorStop(0,baseColor); grad.addColorStop(.5,accentColor); grad.addColorStop(1,baseColor);
-  ctx.fillStyle=grad; ctx.fillRect(0,0,1024,512);
-  const palettes={
-    career:['#315f45','#76a96b','#b2c98a'],chinese:['#235c82','#3c9eaa','#7ac6c0'],
-    reading:['#345f61','#54a69b','#a7d7bd'],diagnostics:['#80613a','#d39b4c','#f0ce79'],
-    research:['#3e4778','#7886c5','#d1b77a']
-  };
-  const palette=palettes[planetId]||['#506080','#8090b0','#c0d0e0'];
-  for(let i=0;i<75;i++){
-    const x=Math.random()*1024,y=Math.random()*512;
-    ctx.fillStyle=palette[i%palette.length];
-    ctx.globalAlpha=.12+Math.random()*.25;
-    ctx.beginPath();ctx.ellipse(x,y,25+Math.random()*100,10+Math.random()*32,Math.random(),0,Math.PI*2);ctx.fill();
-  }
-  ctx.globalAlpha=1;
-  for(let i=0;i<1800;i++){ctx.fillStyle=`rgba(255,255,255,${Math.random()*.1})`;ctx.fillRect(Math.random()*1024,Math.random()*512,1+Math.random()*2,1);}
-  const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;return texture;
-}
-function addAtmosphere(parent,radius,color) {
-  const glow=new THREE.Mesh(new THREE.SphereGeometry(radius*1.12,40,28),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.09,side:THREE.BackSide,depthWrite:false}));
-  parent.add(glow);
-}
-function addOrbit(parent,radius,color) {
-  const ring=new THREE.Mesh(new THREE.TorusGeometry(radius*1.34,.018,6,140),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.38}));
-  ring.rotation.x=Math.PI/2+.35;ring.rotation.y=.2;parent.add(ring);
-}
-function buildCareer(g,r) {
-  // Green highlands, forest belts, a lookout station and a career exploration hub.
-  [[.15,.94,.28],[.48,.78,-.12],[-.48,.72,.2],[-.72,.36,-.22],[.76,.42,.15]].forEach((d,i)=>addPatch(g,r,d,[0x497b50,0x69975a,0x8eaa69][i%3],.72+i%2*.18,.5));
-  for(let i=0;i<18;i++){
-    const a=i*2.399, y=.12+((i*7)%9)*.075, rr=Math.sqrt(1-y*y);
-    addTree(g,r,[Math.cos(a)*rr,y,Math.sin(a)*rr],.65+(i%3)*.18,[0x4c8d5b,0x6ba56b,0x3c7457][i%3]);
-  }
-  addBuilding(g,r,[.18,.94,.28],{w:.65,h:.55,d:.52,color:0xd6d6c1,roof:0x456c55,kind:'dome'});
-  addTower(g,r,[-.72,.57,.38],0xffd58b,1.05);
-  addPath(g,r,[[.18,.94,.28],[.35,.87,.3],[.48,.78,.2],[.58,.7,.1]],0xc9b98b,.075);
-  addCrystal(g,r,[-.25,.9,-.3],0x9de4a6,.75);
-}
-function buildChinese(g,r) {
-  // Blue archipelago, stepped waterways, pagodas and a Chinese learning pavilion.
-  [[.2,.91,.25],[-.42,.84,.28],[.58,.72,-.12],[-.7,.55,-.1],[.05,.68,-.72]].forEach((d,i)=>addPatch(g,r,d,[0x3d8e9a,0x65b6b5,0x2f718d][i%3],.66,.48));
-  addBuilding(g,r,[.2,.91,.25],{w:.52,h:.48,d:.48,color:0xf0dfc4,roof:0xb94d42,kind:'pagoda'});
-  addBuilding(g,r,[-.42,.84,.28],{w:.42,h:.34,d:.4,color:0xe8d5b8,roof:0x356c9b,kind:'pagoda'});
-  for(let i=0;i<9;i++){
-    const a=i*2.4,y=.22+(i%3)*.12,rr=Math.sqrt(1-y*y);
-    addPine(g,r,[Math.cos(a)*rr,y,Math.sin(a)*rr],.75,0x2e7f72);
-  }
-  addPath(g,r,[[.2,.91,.25],[.02,.95,.22],[-.2,.93,.25],[-.42,.84,.28]],0xe6d5ad,.07);
-  addTower(g,r,[.65,.68,.28],0x9deaff,.85);
-  addCloud(g,r,[-.25,.96,-.15],.9);
-}
-function buildReading(g,r) {
-  // Teal reading groves, book-shaped landmarks, library and floating books.
-  [[.2,.93,.22],[-.5,.78,.36],[.58,.73,.16],[-.35,.7,-.62]].forEach((d,i)=>addPatch(g,r,d,[0x3c8878,0x66a98b,0x9bc6a0][i%3],.68,.5));
-  addBuilding(g,r,[.2,.93,.22],{w:.68,h:.55,d:.5,color:0xd9d3b8,roof:0x425e6b,kind:'library'});
-  addBuilding(g,r,[-.5,.78,.36],{w:.38,h:.32,d:.36,color:0xc8d8c7,roof:0x7a9b8b,kind:'dome'});
-  for(let i=0;i<11;i++){
-    const a=i*2.4,y=.1+(i%4)*.12,rr=Math.sqrt(1-y*y);
-    addPine(g,r,[Math.cos(a)*rr,y,Math.sin(a)*rr],.55+(i%3)*.12,0x477e69);
-  }
-  addBook(g,r,[.58,.73,.16],1.15,0xe9d3a4);
-  addBook(g,r,[-.35,.7,-.62],.8,0xc6d9e8);
-  addCrystal(g,r,[-.68,.55,-.35],0xa5f3df,.8);
-  addPath(g,r,[[.2,.93,.22],[.38,.86,.18],[.58,.73,.16]],0xe1d3ad,.07);
-}
-function buildDiagnostics(g,r) {
-  // Amber mineral mesas, laboratory domes, data towers and glowing diagnostic nodes.
-  [[.18,.92,.3],[-.5,.82,.25],[.58,.68,-.2],[-.28,.68,-.68]].forEach((d,i)=>addPatch(g,r,d,[0x987044,0xc18b47,0xe0b968][i%3],.72,.48));
-  addBuilding(g,r,[.18,.92,.3],{w:.62,h:.52,d:.55,color:0xd9c59e,roof:0x4b6682,kind:'dome'});
-  addBuilding(g,r,[-.5,.82,.25],{w:.42,h:.38,d:.42,color:0xe1d3b5,roof:0x647c98,kind:'dome'});
-  for(let i=0;i<7;i++){
-    const a=i*2.399,y=.18+(i%3)*.14,rr=Math.sqrt(1-y*y);
-    addTower(g,r,[Math.cos(a)*rr,y,Math.sin(a)*rr],[0x79d9e9,0xffd17c,0x9daeff][i%3],.65+(i%3)*.18);
-  }
-  for(let i=0;i<6;i++){
-    const a=i*Math.PI/3;
-    addCrystal(g,r,[Math.cos(a)*.8,.45,Math.sin(a)*.8],0x8deaff,.65);
-  }
-  addPath(g,r,[[.18,.92,.3],[.36,.83,.28],[.58,.68,-.2]],0x8ed4d9,.06);
-}
-function buildResearch(g,r) {
-  // Academic campus, formal plazas, observatory, museum and research institute.
-  [[.18,.93,.25],[-.48,.8,.2],[.55,.72,.12],[-.28,.7,-.65],[.72,.42,-.2]].forEach((d,i)=>addPatch(g,r,d,[0x606f9c,0x8995bb,0xb2a77f][i%3],.7,.52));
-  addBuilding(g,r,[.18,.93,.25],{w:.7,h:.58,d:.55,color:0xe1dfd0,roof:0x4b5d8e,kind:'library'});
-  addBuilding(g,r,[-.48,.8,.2],{w:.48,h:.42,d:.46,color:0xd8d7ca,roof:0x7d8cae,kind:'dome'});
-  addBuilding(g,r,[.55,.72,.12],{w:.4,h:.5,d:.4,color:0xe2d5b8,roof:0x8b704d,kind:'pagoda'});
-  addTower(g,r,[-.28,.7,-.65],0xc6d7ff,1.15);
-  for(let i=0;i<7;i++){
-    const a=i*2.4,y=.12+(i%3)*.14,rr=Math.sqrt(1-y*y);
-    addTree(g,r,[Math.cos(a)*rr,y,Math.sin(a)*rr],.55,0x697e86);
-  }
-  addPath(g,r,[[.18,.93,.25],[.38,.86,.22],[.55,.72,.12]],0xd9c99e,.075);
-  addCrystal(g,r,[.72,.42,-.2],0xc7d7ff,.85);
-}
+const box = (p, w, h, d, c, x, y, z) => add(p, new THREE.BoxGeometry(w, h, d), c, x, y, z);
+const ball = (p, r, c, x, y, z, detail = 1) => add(p, new THREE.IcosahedronGeometry(r, detail), c, x, y, z);
+const cone = (p, r, h, c, x, y, z, sides = 6) => add(p, new THREE.ConeGeometry(r, h, sides), c, x, y, z);
+const cylinder = (p, rt, rb, h, c, x, y, z, sides = 8) => add(p, new THREE.CylinderGeometry(rt, rb, h, sides), c, x, y, z);
 
+const themes = {
+  career: {orb: 0x1684f3, rim: 0x63d6ff, grass: 0x83c651, light: 0xa4db69, rock: 0x8a8177, dark: 0x595d65},
+  chinese: {orb: 0x8c5af4, rim: 0xd5a5ff, grass: 0x79bb57, light: 0x9bd568, rock: 0x827c92, dark: 0x5c5974},
+  reading: {orb: 0x2ac8c2, rim: 0x97fff0, grass: 0x8bc769, light: 0xa8db7e, rock: 0x807c72, dark: 0x586870},
+  diagnostics: {orb: 0xf3b943, rim: 0xffeb90, grass: 0x8ac35e, light: 0xb8d974, rock: 0x9b8b75, dark: 0x6b6470},
+  research: {orb: 0xf26991, rim: 0xffa8c9, grass: 0x84bf5a, light: 0xaddb72, rock: 0x927a7e, dark: 0x675b70},
+  observatory: {orb: 0x388df2, rim: 0x89f1ff, grass: 0x86c867, light: 0xb3de7d, rock: 0x8d8d91, dark: 0x5a6480},
+  tree: {orb: 0x755de0, rim: 0xbafaff, grass: 0x83c96a, light: 0xb5df82, rock: 0x8c8498, dark: 0x666283}
+};
 
-// ---------------- 2.5D isometric career island ----------------
-// Flat illustrated colors and clean silhouettes: deliberately no PBR textures or dramatic lighting.
-const flatMat = (color) => new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide });
-function careerShape(scale=1) {
-  const pts = [[-3.9,-.25],[-3.45,-1.45],[-2.5,-2.15],[-1.25,-2.35],[.15,-2.28],[1.55,-2.0],[2.85,-1.45],[3.65,-.55],[3.8,.45],[3.1,1.45],[1.9,2.05],[.45,2.28],[-1.1,2.12],[-2.45,1.72],[-3.45,.95]];
+function islandShape(seed, scale = 1) {
   const shape = new THREE.Shape();
-  pts.forEach(([x,z],i)=> i ? shape.lineTo(x*scale,z*scale) : shape.moveTo(x*scale,z*scale));
-  shape.closePath(); return shape;
-}
-function careerExtrusion(name, scale, depth, y, material) {
-  const geo = new THREE.ExtrudeGeometry(careerShape(scale), {depth, bevelEnabled:true, bevelSegments:1, steps:1, bevelSize:.08, bevelThickness:.08});
-  geo.rotateX(Math.PI/2);
-  const mesh = new THREE.Mesh(geo, material); mesh.name=name; mesh.position.y=y; return mesh;
-}
-function careerBox(parent,name,x,y,z,w,h,d,color,rot=0) {
-  const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),flatMat(color)); m.name=name; m.position.set(x,y,z); m.rotation.y=rot; parent.add(m); return m;
-}
-function careerCone(parent,name,x,y,z,r,h,color,segments=6) {
-  const m=new THREE.Mesh(new THREE.ConeGeometry(r,h,segments),flatMat(color)); m.name=name; m.position.set(x,y,z); parent.add(m); return m;
-}
-function careerTree(parent,x,z,s=1,pine=true) {
-  const g=new THREE.Group(); g.position.set(x,.55,z); parent.add(g);
-  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.055*s,.075*s,.28*s,5),flatMat(0x98633f)); trunk.position.y=.14*s; g.add(trunk);
-  if(pine){
-    [[.28,.42],[.23,.62],[.16,.8]].forEach(([r,y],i)=>{const c=new THREE.Mesh(new THREE.ConeGeometry(r*s,.42*s,6),flatMat([0x34734c,0x43895a,0x5b9d63][i]));c.position.y=y*s;g.add(c);});
-  } else {
-    const crown=new THREE.Mesh(new THREE.IcosahedronGeometry(.27*s,1),flatMat(0x69a85f)); crown.position.y=.52*s; g.add(crown);
-    const crown2=new THREE.Mesh(new THREE.IcosahedronGeometry(.19*s,1),flatMat(0x82ba6c)); crown2.position.set(.13*s,.66*s,.02*s);g.add(crown2);
+  for (let i = 0; i < 20; i++) {
+    const angle = i * Math.PI * 2 / 20;
+    const variation = 1 + Math.sin(i * 2.63 + seed) * .07 + Math.cos(i * 4.12 + seed) * .04;
+    const x = Math.cos(angle) * 3.5 * variation * scale;
+    const z = Math.sin(angle) * 2.45 * variation * scale;
+    if (i === 0) shape.moveTo(x, z); else shape.lineTo(x, z);
   }
-  return g;
+  shape.closePath();
+  return shape;
 }
-function careerHouse(parent,x,z,s=1,roofColor=0xc96f4b) {
-  const g=new THREE.Group();g.position.set(x,.56,z);g.scale.setScalar(s);parent.add(g);
-  careerBox(g,'職業體驗小屋',0,.38,0,.72,.7,.62,0xf4d9a6);
-  careerBox(g,'小屋門',0,.2,.316,.16,.4,.025,0x8c6045);
-  careerBox(g,'小屋窗',-.22,.46,.323,.14,.16,.025,0x83b9c5);
-  careerBox(g,'小屋窗',.22,.46,.323,.14,.16,.025,0x83b9c5);
-  const roof=new THREE.Mesh(new THREE.ConeGeometry(.58,.48,4),flatMat(roofColor));roof.position.y=.94;roof.rotation.y=Math.PI/4;g.add(roof);
-  return g;
-}
-function careerPath(parent, points, color=0xe7c98d, radius=.12) {
-  const curve=new THREE.CatmullRomCurve3(points.map(([x,z])=>new THREE.Vector3(x,.57,z)));
-  const mesh=new THREE.Mesh(new THREE.TubeGeometry(curve,48,radius,7,false),flatMat(color));mesh.name='蜿蜒探索道路';parent.add(mesh);return mesh;
-}
-function buildCareerIsometric(parent) {
-  // Jagged floating rock layers, broad grassy top.
-  const underside=careerExtrusion('不規則浮空岩層',1,1.22,-.12,flatMat(0x806b5b)); parent.add(underside);
-  const lower=careerExtrusion('岩層下緣',.88,.38,-1.12,flatMat(0x5e5960)); lower.position.y=-.48; parent.add(lower);
-  const grass=careerExtrusion('草原島面',.985,.13,.55,flatMat(0x75ad68)); parent.add(grass);
-  // top meadow patches create illustrated terrain regions.
-  const hillData=[[-2.25,.75,.95,.68,0x8fc879],[-.5,1.15,1.25,.7,0x9bce7e],[1.75,.8,1.05,.65,0x6da95f],[2.35,-.75,.8,.6,0x86bd70],[-2.3,-.95,.9,.62,0x6fae68]];
-  hillData.forEach(([x,z,rx,rz,c],i)=>{const m=new THREE.Mesh(new THREE.CircleGeometry(1,28),flatMat(c));m.rotation.x=-Math.PI/2;m.scale.set(rx,rz,1);m.position.set(x,.69,z);parent.add(m);});
-  // Mountain range at the back, layered and graphic.
-  [[-.85,1.48,.78,1.55,0x789b83],[-.05,1.62,.9,2.05,0x638b78],[.82,1.45,.72,1.48,0x86a78a],[1.48,1.2,.55,1.08,0x789b83]].forEach(([x,z,r,h,c])=>{
-    const m=new THREE.Mesh(new THREE.ConeGeometry(r,h,5),flatMat(c));m.position.set(x,.68+h/2,z);m.rotation.y=.25;parent.add(m);
-    const cap=new THREE.Mesh(new THREE.ConeGeometry(r*.28,h*.25,5),flatMat(0xe7e5d0));cap.position.set(x,.68+h*.88,z);parent.add(cap);
+function islandLayer(parent, seed, scale, depth, top, color) {
+  const geometry = new THREE.ExtrudeGeometry(islandShape(seed, scale), {
+    depth, steps: 1, bevelEnabled: true, bevelThickness: .06, bevelSize: .06, bevelSegments: 1,
+    curveSegments: 2
   });
-  // Meandering exploration trail and a small crossing bridge.
-  careerPath(parent,[[-3.05,-1.0],[-2.25,-1.45],[-1.35,-1.35],[-.55,-.85],[.2,-.45],[1.05,-.55],[1.9,-.95],[2.85,-.55]],0xe8cf9b,.13);
-  careerBox(parent,'木橋橋面',-.78,-.02,-.48,.95,.12,.42,0xb57b4b,-.12);
-  for(let i=0;i<4;i++)careerBox(parent,'木橋欄杆',-.78,-.0,-.68+i*.13,.95,.07,.045,0x875b3e,-.12);
-  // Career exploration center, main focal building.
-  const hub=new THREE.Group();hub.position.set(.35,.72,-.45);parent.add(hub);
-  careerBox(hub,'職涯探索基地主體',0,.48,0,1.22,.9,.92,0xf1e1bd);
-  careerBox(hub,'基地玻璃門',0,.35,.47,.27,.58,.035,0x6fa9b8);
-  for(let i=-1;i<=1;i++)careerBox(hub,'基地窗戶',i*.38,.58,.477,.19,.25,.025,0x8fc4ca);
-  const hubRoof=new THREE.Mesh(new THREE.ConeGeometry(.94,.62,4),flatMat(0x4d8062));hubRoof.position.y=1.18;hubRoof.rotation.y=Math.PI/4;hub.add(hubRoof);
-  // Watchtower and job-experience cottages.
-  careerBox(parent,'瞭望塔塔身',-2.75,.98,.15,.34,1.25,.34,0xd8c18f);
-  const towerRoof=new THREE.Mesh(new THREE.ConeGeometry(.36,.42,5),flatMat(0xb96c4b));towerRoof.position.set(-2.75,1.82,.15);parent.add(towerRoof);
-  careerHouse(parent,-1.85,-1.35,.78,0xc87850);
-  careerHouse(parent,2.15,-1.25,.82,0x668b70);
-  careerHouse(parent,2.65,.45,.66,0xd18a53);
-  // Groves around the perimeter, leaving the central landmarks visible.
-  [[-3.0,.55,.9],[-2.65,1.15,.72],[-1.95,1.55,.72],[-3.0,-.45,.7],[-2.25,-1.85,.65],[-1.55,-1.8,.55],[2.95,1.05,.75],[3.05,-.25,.82],[2.45,-1.75,.58],[1.45,1.75,.55],[-1.15,.15,.55],[1.85,.2,.55]].forEach(([x,z,s],i)=>careerTree(parent,x,z,s,i%3!==0));
-  // Bushes, stepping stones and tiny route markers.
-  [[-1.2,-.3],[1.45,-1.35],[.95,1.05],[-2.7,-1.45],[2.75,.85]].forEach(([x,z])=>{const b=new THREE.Mesh(new THREE.IcosahedronGeometry(.19,1),flatMat(0x79b96b));b.position.set(x,.68,z);parent.add(b);});
-  // A small sign at the entrance.
-  careerBox(parent,'探索路線指示牌',1.55,.86,-.05,.42,.32,.07,0xf4e7c9);
-  careerBox(parent,'指示牌立柱',1.55,.64,-.05,.055,.42,.055,0x8a6546);
+  geometry.rotateX(Math.PI / 2);
+  return add(parent, geometry, color, 0, top, 0);
 }
-function createCareerIsland(def) {
-  const group=new THREE.Group();group.position.set(...def.position);group.userData.planet=def;
-  buildCareerIsometric(group);
-  // subtle illustrated outline halo, not a realistic atmospheric glow
-  const halo=new THREE.Mesh(new THREE.CircleGeometry(4.55,64),new THREE.MeshBasicMaterial({color:0x8fcf83,transparent:true,opacity:.08,side:THREE.DoubleSide,depthWrite:false}));
-  halo.rotation.x=-Math.PI/2;halo.position.y=-1.45;group.add(halo);
-  return {group,sphere:group};
-}
-
-export function createPlanet(def) {
-  if (def.id === 'career') return createCareerIsland(def);
-  const group=new THREE.Group();
-  group.position.set(...def.position);
-  group.userData.planet=def;
-  const r=def.radius, color=new THREE.Color(def.color);
-  const sphere=new THREE.Mesh(new THREE.SphereGeometry(r,72,56),new THREE.MeshStandardMaterial({
-    map:makePlanetTexture(def.color,def.accent,def.id),roughness:.9,metalness:.04,emissive:color,emissiveIntensity:.035
-  }));
-  sphere.userData.planet=def;group.add(sphere);
-  const builders={career:buildCareer,chinese:buildChinese,reading:buildReading,diagnostics:buildDiagnostics,research:buildResearch};
-  (builders[def.id]||buildCareer)(group,r);
-  addAtmosphere(group,r,color);
-  addOrbit(group,r,color);
-  return {group,sphere};
-}
-
-export function createCore() {
-  const group=new THREE.Group();
-  const core=new THREE.Mesh(new THREE.SphereGeometry(5.1,72,56),new THREE.MeshStandardMaterial({
-    color:0x263a75,emissive:0x253c91,emissiveIntensity:.62,metalness:.48,roughness:.3
-  }));
-  group.add(core);
-  const halo=new THREE.Mesh(new THREE.SphereGeometry(5.7,40,28),new THREE.MeshBasicMaterial({color:0x7e9dff,transparent:true,opacity:.1,side:THREE.BackSide}));
-  group.add(halo);
-  for(let i=0;i<3;i++){
-    const ring=new THREE.Mesh(new THREE.TorusGeometry(7.3+i*.65,.025,8,180),new THREE.MeshBasicMaterial({color:i===1?0xb3c7ff:0x617bd1,transparent:true,opacity:.5-i*.1}));
-    ring.rotation.x=Math.PI/2+i*.19;ring.rotation.y=i*.35;group.add(ring);
+function makeGround(group, theme, seed) {
+  islandLayer(group, seed, .84, .35, -.77, theme.dark);
+  islandLayer(group, seed, .97, .96, .12, theme.rock);
+  islandLayer(group, seed, 1, .18, .41, theme.grass);
+  for (let i = 0; i < 15; i++) {
+    const a = i * Math.PI * 2 / 15;
+    const x = Math.cos(a) * (3.13 + .13 * Math.sin(i * 3 + seed));
+    const z = Math.sin(a) * (2.13 + .1 * Math.cos(i * 2 + seed));
+    const chunk = cone(group, .31 + i % 3 * .05, .75 + i % 4 * .11,
+      i % 3 ? theme.rock : theme.dark, x, -.77, z, 5);
+    chunk.rotation.z = Math.PI + Math.sin(i * 2) * .12;
   }
-  // The central identity core remains a distinct portfolio hub, not a sixth category.
-  const canvas=document.createElement('canvas');canvas.width=640;canvas.height=160;
-  const ctx=canvas.getContext('2d');ctx.fillStyle='#eaf0ff';ctx.font='600 48px Arial';ctx.textAlign='center';ctx.fillText('MY PORTFOLIO',320,70);
-  ctx.fillStyle='#aebfff';ctx.font='22px Arial';ctx.fillText('CREATIVE UNIVERSE',320,112);
-  const tex=new THREE.CanvasTexture(canvas);
-  const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false}));
-  sprite.scale.set(10,2.5,1);sprite.position.y=6.4;group.add(sprite);
-  return group;
+  // Broad, irregular patches create the illustrated meadow surface.
+  [[-2, -.55, .82, .55], [1.7, -.9, .9, .5], [-.5, 1.12, 1.1, .55], [2.2, .85, .68, .42]].forEach(([x, z, sx, sz]) => {
+    const patch = add(group, new THREE.CircleGeometry(1, 24), theme.light, x, .426, z);
+    patch.rotation.x = -Math.PI / 2;
+    patch.scale.set(sx, sz, 1);
+  });
+}
+function tree(parent, x, z, size = 1, pine = true, leaf = 0x388756) {
+  const g = new THREE.Group(); g.position.set(x, .44, z); g.scale.setScalar(size); parent.add(g);
+  cylinder(g, .055, .075, .35, 0x8c6040, 0, .17, 0, 6);
+  if (pine) {
+    cone(g, .32, .55, leaf, 0, .45, 0, 7);
+    cone(g, .25, .48, 0x4e9b61, 0, .72, 0, 7);
+    cone(g, .17, .36, 0x6bad6c, 0, .98, 0, 7);
+  } else {
+    ball(g, .35, leaf, -.1, .58, 0);
+    ball(g, .29, 0x75b95f, .22, .65, .06);
+    ball(g, .26, leaf, 0, .86, -.04);
+  }
+  return g;
+}
+function grove(parent, leaf, offset = 0) {
+  const spots = [[-2.85,-.8],[-2.8,.55],[-2.35,1.45],[-1.5,-1.8],[2.8,-.65],[2.67,.65],[2.1,1.55],[.65,-1.85],[-.7,1.8]];
+  spots.forEach(([x,z], i) => tree(parent, x, z, .68 + (i % 3) * .12, i % 4 !== 0, leaf));
+  if (offset) tree(parent, -1.85, .6, .65, false, leaf);
+}
+function path(parent, points, color = 0xe4cc99, width = .12) {
+  const curve = new THREE.CatmullRomCurve3(points.map(([x,z]) => new THREE.Vector3(x, .47, z)));
+  add(parent, new THREE.TubeGeometry(curve, 32, width, 7, false), color, 0, 0, 0);
+}
+function building(parent, x, z, width, height, depth, wall, roof, style = 'house') {
+  const g = new THREE.Group(); g.position.set(x, .45, z); parent.add(g);
+  box(g, width, height, depth, wall, 0, height / 2, 0);
+  box(g, width * .19, height * .47, .025, 0x6a5a55, 0, height * .25, depth / 2 + .02);
+  for (const side of [-1, 1]) {
+    box(g, width * .16, height * .24, .025, 0x8adbec,
+      side * width * .28, height * .56, depth / 2 + .02);
+  }
+  if (style === 'dome') {
+    const dome = add(g, new THREE.SphereGeometry(width * .57, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2), roof, 0, height, 0);
+    dome.scale.z = depth / width;
+  } else if (style === 'temple') {
+    box(g, width * 1.2, .12, depth * 1.2, roof, 0, height + .06, 0);
+    box(g, width * .9, .18, depth * .9, roof, 0, height + .18, 0);
+    cone(g, width * .61, .3, roof, 0, height + .38, 0, 4).rotation.y = Math.PI / 4;
+  } else {
+    cone(g, width * .73, .45, roof, 0, height + .19, 0, 4).rotation.y = Math.PI / 4;
+  }
+  return g;
+}
+function mountains(parent, colors = [0x648c80, 0x769e86, 0x92ad92]) {
+  [[-1.35,-1.13,.72,1.4],[-.55,-1.42,.85,1.95],[.46,-1.43,.72,1.55],[1.2,-1.1,.6,1.15]].forEach(([x,z,r,h], i) => {
+    cone(parent, r, h, colors[i % colors.length], x, .45 + h / 2, z, 5);
+    cone(parent, r * .28, h * .27, 0xe9edf0, x, .45 + h * .89, z, 5);
+  });
+}
+function cloud(parent, x, y, z, scale = 1) {
+  const g = new THREE.Group(); g.position.set(x,y,z); g.scale.setScalar(scale); parent.add(g);
+  [[-.35,0,.26],[0,.14,.38],[.36,0,.26],[.1,-.06,.25]].forEach(([dx,dy,r]) => {
+    const puff = add(g, new THREE.SphereGeometry(r, 12, 8), 0xf4f8ff, dx,dy,0);
+    puff.material = new THREE.MeshBasicMaterial({color: 0xf4f8ff, transparent: true, opacity: .88, depthWrite: false});
+  });
+}
+function waterfall(parent, x, z, width = .34) {
+  const stream = box(parent, width, .93, .08, 0x49c9f4, x, -.3, z);
+  stream.material = paint(0x65d8ff, true);
+  ball(parent, width * .85, 0xd6fbff, x, -.85, z, 1);
+}
+function flowerTree(parent, x, z) {
+  const g = tree(parent, x, z, .98, false, 0xf698bc);
+  g.children.slice(1).forEach((child, i) => { child.material = paint([0xffb4d1, 0xf482b2, 0xffc6d9][i % 3]); });
+}
+function book(parent, x, y, z, scale = 1) {
+  const g = new THREE.Group(); g.position.set(x,y,z); g.scale.setScalar(scale); parent.add(g);
+  for (const side of [-1,1]) {
+    const cover = box(g, .48, .07, .72, 0xc96f49, side * .23, -.05, 0);
+    cover.rotation.z = side * .15;
+    const page = box(g, .44, .065, .66, 0xfff2d2, side * .23, .01, 0);
+    page.rotation.z = side * .15;
+    box(g, .3, .01, .016, 0xd4ba91, side * .24, .065, -.12);
+  }
+  box(g, .06, .13, .74, 0x8d5d43, 0, -.02, 0);
+}
+function pagoda(parent, x, z) {
+  const g = new THREE.Group(); g.position.set(x,.44,z); parent.add(g);
+  for (let i = 0; i < 3; i++) {
+    const w = .72 - i * .15;
+    box(g, w, .45, w * .8, 0xf1cf9c, 0, .27 + i * .55, 0);
+    box(g, w * 1.3, .09, w * 1.05, 0x315d91, 0, .53 + i * .55, 0);
+    cone(g, w * .75, .28, 0x315d91, 0, .71 + i * .55, 0, 4).rotation.y = Math.PI / 4;
+  }
+  cone(g, .1, .3, 0xf6bd5b, 0, 2.04, 0);
+}
+function orbitAndOrb(parent, theme) {
+  const orb = new THREE.Mesh(new THREE.SphereGeometry(4.18, 48, 32),
+    new THREE.MeshBasicMaterial({color: theme.orb, side: THREE.BackSide, transparent: true, opacity: .7, depthWrite: false, toneMapped: false}));
+  orb.position.y = -.06;
+  orb.renderOrder = -2;
+  parent.add(orb);
+  const haze = new THREE.Mesh(new THREE.SphereGeometry(4.35, 32, 20),
+    new THREE.MeshBasicMaterial({color: theme.rim, side: THREE.BackSide, transparent: true, opacity: .09, depthWrite: false, toneMapped: false}));
+  haze.position.y = -.06; haze.renderOrder = -3; parent.add(haze);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(4.36, .026, 6, 144),
+    new THREE.MeshBasicMaterial({color: theme.rim, transparent: true, opacity: .9, depthWrite: false, toneMapped: false}));
+  ring.rotation.x = Math.PI / 2 - .16;
+  ring.rotation.y = -.12;
+  ring.position.y = -.24;
+  parent.add(ring);
+}
+
+function career(g) {
+  mountains(g);
+  path(g, [[-2.6,1.1],[-2,.4],[-1.3,-.5],[-.5,.15],[.3,.78],[1.25,.3],[2.45,1.1]]);
+  building(g, .15, -.2, 1.13, .92, .85, 0xf6dda9, 0x397a74);
+  building(g, -2, .8, .72, .64, .65, 0xf5d79d, 0xb66742);
+  building(g, 2.15, .45, .68, .58, .6, 0xf3d398, 0xc87347);
+  cylinder(g, .18, .24, 1.35, 0x9d6239, -2.52, 1.1, -1.01, 5);
+  box(g, .82, .12, .82, 0xc98243, -2.52, 1.79, -1.01);
+  cone(g, .56, .42, 0xe3943e, -2.52, 2.01, -1.01, 4).rotation.y = Math.PI / 4;
+  grove(g, 0x348a52, 1);
+  waterfall(g, -.82, 2.1, .37);
+  cloud(g, -2.45, 2.4, -1.9, .8);
+}
+function chinese(g) {
+  mountains(g, [0x7b8791,0x9ba28a,0x647f7d]);
+  path(g, [[-2.7,1],[-1.8,.45],[-.8,.7],[.25,.75],[1.3,.38],[2.2,1.1]], 0xe8d6b0);
+  building(g, -.48, -.12, 1.55, 1.04, .95, 0xe8b69c, 0x315f95, 'temple');
+  pagoda(g, 1.85, -1.05);
+  const bridge = box(g, 1.05, .12, .4, 0xefe1c6, .78, .58, 1.23); bridge.rotation.y = -.2;
+  for (const x of [.3,.65,1,1.35]) cylinder(g, .035,.035,.35,0xf4ead7,x,.78,1.03,6);
+  flowerTree(g, -2.15, 1.1);
+  grove(g, 0x35855a);
+  waterfall(g, 1.33, 2.1, .42);
+  cloud(g, -2.5, 2.3, -1.5, .75);
+}
+function reading(g) {
+  path(g, [[-2.6,1],[-1.8,.25],[-.5,-.2],[.5,.1],[1.5,.55],[2.3,1.3]], 0xe6d4a8);
+  building(g, .36, -.72, 1.7, 1.16, 1.02, 0xf2d6a7, 0x7cc69f, 'dome');
+  cylinder(g, .6, .68, .17, 0xebbd85, .36, .5, -.72, 12);
+  building(g, 2.45, .52, .65, .55, .6, 0xf5d99e, 0xd18045);
+  book(g, -.45, .6, 1.38, 1.3);
+  for (let i=0;i<4;i++) box(g, .16, .5 + i*.06, .42, [0xf17857,0x48a6a9,0xe9b953,0x6688cb][i], -2.25+i*.2, .72, -.42);
+  grove(g, 0x38916a, 1);
+  cloud(g, 2.7, 2.15, -1.3, .74);
+}
+function diagnostics(g) {
+  mountains(g, [0x8ba8aa,0x729aaa,0x9fb4a0]);
+  path(g, [[-2.55,1.2],[-1.65,.6],[-.7,.85],[.3,.5],[1.35,.9],[2.5,1.4]], 0xe6d9b8);
+  building(g, -.72, -.23, 1.3, .92, 1.1, 0xc8e2e8, 0x3f9cdb, 'dome');
+  building(g, 1.85, .52, .92, .74, .72, 0xd7e9e8, 0x83badd);
+  cylinder(g, .16, .21, 1.55, 0x65c5ee, 1.18, 1.22, -1.35, 10);
+  for (const y of [1.45,1.85,2.24]) {
+    const ring = add(g, new THREE.TorusGeometry(.38,.035,6,32), 0x8ff2ff, 1.18, y, -1.35, true);
+    ring.rotation.x = Math.PI / 2;
+  }
+  for (const [x,z] of [[-2.6,1.02],[-2.2,-1.03],[2.55,-.5]]) {
+    const crystal = add(g, new THREE.OctahedronGeometry(.32,0), 0x70d8fb, x, .78, z, true);
+    crystal.scale.y = 1.7;
+  }
+  grove(g, 0x3f995b);
+  cloud(g, -2.55, 2.22, -1.3, .85);
+}
+function research(g) {
+  path(g, [[-2.65,1.02],[-1.6,.7],[-.55,.95],[.3,.4],[1.4,.6],[2.5,1.23]], 0xe7d4ad);
+  building(g, -.18, -.68, 1.82, 1.08, 1.04, 0xf3d9a7, 0x4e79ae, 'temple');
+  building(g, -2.15, .75, .78, .66, .7, 0xf1d5a8, 0x587fb0);
+  building(g, 2.22, .6, .78, .72, .7, 0xd9e4e9, 0x6da2cb);
+  cylinder(g, .22, .27, 1.22, 0xf4cc83, -1.8, 1.08, -1.1, 8);
+  cone(g, .38, .43, 0x517db7, -1.8, 1.88, -1.1, 4).rotation.y = Math.PI / 4;
+  ball(g, .12, 0xfff0d7, -1.8, 1.3, -.86);
+  cylinder(g, .5, .53, .12, 0xdde4e9, 1.8, .52, -1.35, 12);
+  const dome = add(g, new THREE.SphereGeometry(.53, 16, 10, 0, Math.PI*2, 0, Math.PI/2), 0x69ace1, 1.8, .58, -1.35);
+  dome.rotation.z = .1;
+  cylinder(g, .47, .59, .15, 0xe8edf2, .3, .48, 1.28, 12);
+  cylinder(g, .06, .1, .42, 0x70d8f3, .3, .72, 1.28, 10);
+  ball(g, .13, 0xa7f6ff, .3, .95, 1.28);
+  grove(g, 0x3d9361);
+  flowerTree(g, -2.68, -.15);
+  flowerTree(g, 2.75, .1);
+  cloud(g, -2.8, 2.28, -1.45, .72);
+}
+
+const builders = {career, chinese, reading, diagnostics, research};
+export function createPlanet(def) {
+  const group = new THREE.Group();
+  group.position.set(...def.position);
+  group.scale.setScalar(def.radius / 4);
+  group.userData.planet = def;
+  const theme = themes[def.id];
+  orbitAndOrb(group, theme);
+  makeGround(group, theme, Number(def.number));
+  builders[def.id](group);
+  return {group, sphere: group};
+}
+
+function addMainDocks(group, color) {
+  for (let i = 0; i < 5; i++) {
+    const angle = i * Math.PI * 2 / 5 + .24;
+    const x = Math.cos(angle) * 2.98;
+    const z = Math.sin(angle) * 2.06;
+    cylinder(group, .28, .3, .12, 0xd8e3e7, x, .52, z, 12);
+    const ring = add(group, new THREE.TorusGeometry(.21, .025, 5, 24), color, x, .6, z, true);
+    ring.rotation.x = Math.PI / 2;
+  }
+}
+function mainObservatory(group) {
+  building(group, 0, -.28, 1.72, 1.08, 1.25, 0xe8e2d2, 0x7dcced, 'dome');
+  cylinder(group, .16, .21, 1.6, 0xe2d2ac, .04, 1.74, -.53, 10);
+  const beacon = ball(group, .2, 0x9dffff, .04, 2.62, -.53);
+  beacon.material = paint(0x9dffff, true);
+  building(group, -1.85, .6, .66, .6, .55, 0xf2dcb2, 0x4b91bc);
+  waterfall(group, .4, 2.1, .34);
+  path(group, [[-2.2,1.1],[-1.25,.76],[-.4,.94],[.32,.5],[1.6,.88],[2.45,1.2]], 0xf0d4a5);
+  flowerTree(group, -1.8, -.95);
+  grove(group, 0x399866, 1);
+  addMainDocks(group, 0x91f5ff);
+}
+function mainTree(group) {
+  cylinder(group, .12, .18, 1.67, 0xb78b5d, 0, 1.3, -.42, 8);
+  for (let i = 0; i < 6; i++) {
+    const angle = i * Math.PI * 2 / 6;
+    const x = Math.cos(angle) * .72;
+    const z = -.42 + Math.sin(angle) * .58;
+    ball(group, .63, i % 2 ? 0x89d780 : 0xa4e39a, x, 2.2 + i % 2 * .18, z);
+    ball(group, .17, 0x9ae9f4, x * 1.13, 2.6 + i % 2 * .14, z, 0).material = paint(0x9ae9f4, true);
+  }
+  cylinder(group, 1.17, 1.17, .13, 0xe9d7b4, 0, .51, -.45, 16);
+  for (let i = 0; i < 9; i++) {
+    const a = i * Math.PI * 2 / 9;
+    cylinder(group, .045, .045, .58, 0xf3e2c4, Math.cos(a)*1.02, .83, -.45+Math.sin(a)*.83, 6);
+  }
+  path(group, [[-2.5,.9],[-1.5,.42],[-.5,.85],[.45,.6],[1.6,.95],[2.45,1.1]], 0xebd0aa);
+  flowerTree(group, -2.05, .1);
+  grove(group, 0x51a36b);
+  waterfall(group, 1.1, 2, .34);
+  addMainDocks(group, 0xbafaff);
+}
+
+export const MAIN_POSITION = [3, 0, 1];
+export const MAIN_RADIUS = 4.6;
+export function createMainPlanet(initialStyle = 'observatory') {
+  const group = new THREE.Group();
+  group.position.set(...MAIN_POSITION);
+  group.scale.setScalar(1.1);
+  group.userData.planet = {id: 'main', name: '主星球'};
+  const variants = {};
+  for (const [style, build] of [['observatory', mainObservatory], ['tree', mainTree]]) {
+    const variant = new THREE.Group();
+    orbitAndOrb(variant, themes[style]);
+    makeGround(variant, themes[style], style === 'observatory' ? 6 : 9);
+    build(variant);
+    group.add(variant);
+    variants[style] = variant;
+  }
+  function setStyle(style) {
+    const selected = variants[style] ? style : 'observatory';
+    for (const [name, variant] of Object.entries(variants)) variant.visible = name === selected;
+    group.userData.style = selected;
+  }
+  setStyle(initialStyle);
+  return {group, setStyle};
 }

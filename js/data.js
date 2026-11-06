@@ -10,11 +10,10 @@ export const planets = [
     "accent": "#a9d0ff",
     "count": 38,
     "position": [
-      -17,
-      2,
-      1
+      -10,
+      5.7,
+      1.5
     ],
-    "radius": 4.0,
     "group": "生涯探索"
   },
   {
@@ -27,11 +26,10 @@ export const planets = [
     "accent": "#d5c5ff",
     "count": 16,
     "position": [
-      -8,
-      -3,
-      -12
+      1,
+      10,
+      -3
     ],
-    "radius": 3.35,
     "group": "華語學習"
   },
   {
@@ -44,11 +42,10 @@ export const planets = [
     "accent": "#a5f3e5",
     "count": 19,
     "position": [
-      8,
-      3,
-      -13
+      15.5,
+      5,
+      -0.5
     ],
-    "radius": 3.6,
     "group": "閱讀素養"
   },
   {
@@ -61,11 +58,10 @@ export const planets = [
     "accent": "#ffe0a1",
     "count": 15,
     "position": [
-      17,
-      -2,
-      0
+      -8,
+      -7.8,
+      -1
     ],
-    "radius": 3.45,
     "group": "學習診斷"
   },
   {
@@ -74,15 +70,14 @@ export const planets = [
     "name": "研究學術島",
     "english": "RESEARCH & ACADEMIA",
     "description": "研究中心、教育計畫、品牌與學術活動",
-    "color": "#829dff",
-    "accent": "#c3ceff",
+    "color": "#f26991",
+    "accent": "#ffa8c9",
     "count": 26,
     "position": [
-      0,
-      6,
-      14
+      13.5,
+      -8.3,
+      1
     ],
-    "radius": 4.15,
     "group": "研究學術"
   }
 ];
@@ -1431,6 +1426,18 @@ export const projects = [
     "planet": "reading"
   }
 ];
+
+// Derive island sizes from the actual project records, so adding a project updates its planet.
+const counts = new Map(planets.map(planet => [planet.id, 0]));
+for (const project of projects) {
+  if (counts.has(project.planet)) counts.set(project.planet, counts.get(project.planet) + 1);
+}
+const minProjects = Math.min(...counts.values());
+const maxProjects = Math.max(...counts.values());
+for (const planet of planets) {
+  planet.count = counts.get(planet.id);
+  planet.radius = 2.8 + 1.4 * (planet.count - minProjects) / (maxProjects - minProjects || 1);
+}
 
 export const portfolio = {
   title: "MY PORTFOLIO",

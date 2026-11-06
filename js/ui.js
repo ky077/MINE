@@ -13,7 +13,7 @@ export function initUI({ onSelectPlanet, onHome }) {
   legend.innerHTML = planets.map(p => `
     <button class="legend-item" data-planet="${p.id}">
       <span class="legend-dot" style="color:${p.color};background:${p.color}"></span>
-      <span class="legend-number">${p.number}</span><span>${escapeHTML(p.name)}</span>
+      <span class="legend-number">${p.number}</span><span>${escapeHTML(p.name)}</span><span class="legend-count">${p.count}</span>
     </button>`).join('');
   legend.addEventListener('click', e => {
     const button=e.target.closest('[data-planet]');

@@ -216,7 +216,99 @@ function buildResearch(g,r) {
   addCrystal(g,r,[.72,.42,-.2],0xc7d7ff,.85);
 }
 
+
+// ---------------- 2.5D isometric career island ----------------
+// Flat illustrated colors and clean silhouettes: deliberately no PBR textures or dramatic lighting.
+const flatMat = (color) => new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide });
+function careerShape(scale=1) {
+  const pts = [[-3.9,-.25],[-3.45,-1.45],[-2.5,-2.15],[-1.25,-2.35],[.15,-2.28],[1.55,-2.0],[2.85,-1.45],[3.65,-.55],[3.8,.45],[3.1,1.45],[1.9,2.05],[.45,2.28],[-1.1,2.12],[-2.45,1.72],[-3.45,.95]];
+  const shape = new THREE.Shape();
+  pts.forEach(([x,z],i)=> i ? shape.lineTo(x*scale,z*scale) : shape.moveTo(x*scale,z*scale));
+  shape.closePath(); return shape;
+}
+function careerExtrusion(name, scale, depth, y, material) {
+  const geo = new THREE.ExtrudeGeometry(careerShape(scale), {depth, bevelEnabled:true, bevelSegments:1, steps:1, bevelSize:.08, bevelThickness:.08});
+  geo.rotateX(Math.PI/2);
+  const mesh = new THREE.Mesh(geo, material); mesh.name=name; mesh.position.y=y; return mesh;
+}
+function careerBox(parent,name,x,y,z,w,h,d,color,rot=0) {
+  const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),flatMat(color)); m.name=name; m.position.set(x,y,z); m.rotation.y=rot; parent.add(m); return m;
+}
+function careerCone(parent,name,x,y,z,r,h,color,segments=6) {
+  const m=new THREE.Mesh(new THREE.ConeGeometry(r,h,segments),flatMat(color)); m.name=name; m.position.set(x,y,z); parent.add(m); return m;
+}
+function careerTree(parent,x,z,s=1,pine=true) {
+  const g=new THREE.Group(); g.position.set(x,.55,z); parent.add(g);
+  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.055*s,.075*s,.28*s,5),flatMat(0x98633f)); trunk.position.y=.14*s; g.add(trunk);
+  if(pine){
+    [[.28,.42],[.23,.62],[.16,.8]].forEach(([r,y],i)=>{const c=new THREE.Mesh(new THREE.ConeGeometry(r*s,.42*s,6),flatMat([0x34734c,0x43895a,0x5b9d63][i]));c.position.y=y*s;g.add(c);});
+  } else {
+    const crown=new THREE.Mesh(new THREE.IcosahedronGeometry(.27*s,1),flatMat(0x69a85f)); crown.position.y=.52*s; g.add(crown);
+    const crown2=new THREE.Mesh(new THREE.IcosahedronGeometry(.19*s,1),flatMat(0x82ba6c)); crown2.position.set(.13*s,.66*s,.02*s);g.add(crown2);
+  }
+  return g;
+}
+function careerHouse(parent,x,z,s=1,roofColor=0xc96f4b) {
+  const g=new THREE.Group();g.position.set(x,.56,z);g.scale.setScalar(s);parent.add(g);
+  careerBox(g,'職業體驗小屋',0,.38,0,.72,.7,.62,0xf4d9a6);
+  careerBox(g,'小屋門',0,.2,.316,.16,.4,.025,0x8c6045);
+  careerBox(g,'小屋窗',-.22,.46,.323,.14,.16,.025,0x83b9c5);
+  careerBox(g,'小屋窗',.22,.46,.323,.14,.16,.025,0x83b9c5);
+  const roof=new THREE.Mesh(new THREE.ConeGeometry(.58,.48,4),flatMat(roofColor));roof.position.y=.94;roof.rotation.y=Math.PI/4;g.add(roof);
+  return g;
+}
+function careerPath(parent, points, color=0xe7c98d, radius=.12) {
+  const curve=new THREE.CatmullRomCurve3(points.map(([x,z])=>new THREE.Vector3(x,.57,z)));
+  const mesh=new THREE.Mesh(new THREE.TubeGeometry(curve,48,radius,7,false),flatMat(color));mesh.name='蜿蜒探索道路';parent.add(mesh);return mesh;
+}
+function buildCareerIsometric(parent) {
+  // Jagged floating rock layers, broad grassy top.
+  const underside=careerExtrusion('不規則浮空岩層',1,1.22,-.12,flatMat(0x806b5b)); parent.add(underside);
+  const lower=careerExtrusion('岩層下緣',.88,.38,-1.12,flatMat(0x5e5960)); lower.position.y=-.48; parent.add(lower);
+  const grass=careerExtrusion('草原島面',.985,.13,.55,flatMat(0x75ad68)); parent.add(grass);
+  // top meadow patches create illustrated terrain regions.
+  const hillData=[[-2.25,.75,.95,.68,0x8fc879],[-.5,1.15,1.25,.7,0x9bce7e],[1.75,.8,1.05,.65,0x6da95f],[2.35,-.75,.8,.6,0x86bd70],[-2.3,-.95,.9,.62,0x6fae68]];
+  hillData.forEach(([x,z,rx,rz,c],i)=>{const m=new THREE.Mesh(new THREE.CircleGeometry(1,28),flatMat(c));m.rotation.x=-Math.PI/2;m.scale.set(rx,rz,1);m.position.set(x,.69,z);parent.add(m);});
+  // Mountain range at the back, layered and graphic.
+  [[-.85,1.48,.78,1.55,0x789b83],[-.05,1.62,.9,2.05,0x638b78],[.82,1.45,.72,1.48,0x86a78a],[1.48,1.2,.55,1.08,0x789b83]].forEach(([x,z,r,h,c])=>{
+    const m=new THREE.Mesh(new THREE.ConeGeometry(r,h,5),flatMat(c));m.position.set(x,.68+h/2,z);m.rotation.y=.25;parent.add(m);
+    const cap=new THREE.Mesh(new THREE.ConeGeometry(r*.28,h*.25,5),flatMat(0xe7e5d0));cap.position.set(x,.68+h*.88,z);parent.add(cap);
+  });
+  // Meandering exploration trail and a small crossing bridge.
+  careerPath(parent,[[-3.05,-1.0],[-2.25,-1.45],[-1.35,-1.35],[-.55,-.85],[.2,-.45],[1.05,-.55],[1.9,-.95],[2.85,-.55]],0xe8cf9b,.13);
+  careerBox(parent,'木橋橋面',-.78,-.02,-.48,.95,.12,.42,0xb57b4b,-.12);
+  for(let i=0;i<4;i++)careerBox(parent,'木橋欄杆',-.78,-.0,-.68+i*.13,.95,.07,.045,0x875b3e,-.12);
+  // Career exploration center, main focal building.
+  const hub=new THREE.Group();hub.position.set(.35,.72,-.45);parent.add(hub);
+  careerBox(hub,'職涯探索基地主體',0,.48,0,1.22,.9,.92,0xf1e1bd);
+  careerBox(hub,'基地玻璃門',0,.35,.47,.27,.58,.035,0x6fa9b8);
+  for(let i=-1;i<=1;i++)careerBox(hub,'基地窗戶',i*.38,.58,.477,.19,.25,.025,0x8fc4ca);
+  const hubRoof=new THREE.Mesh(new THREE.ConeGeometry(.94,.62,4),flatMat(0x4d8062));hubRoof.position.y=1.18;hubRoof.rotation.y=Math.PI/4;hub.add(hubRoof);
+  // Watchtower and job-experience cottages.
+  careerBox(parent,'瞭望塔塔身',-2.75,.98,.15,.34,1.25,.34,0xd8c18f);
+  const towerRoof=new THREE.Mesh(new THREE.ConeGeometry(.36,.42,5),flatMat(0xb96c4b));towerRoof.position.set(-2.75,1.82,.15);parent.add(towerRoof);
+  careerHouse(parent,-1.85,-1.35,.78,0xc87850);
+  careerHouse(parent,2.15,-1.25,.82,0x668b70);
+  careerHouse(parent,2.65,.45,.66,0xd18a53);
+  // Groves around the perimeter, leaving the central landmarks visible.
+  [[-3.0,.55,.9],[-2.65,1.15,.72],[-1.95,1.55,.72],[-3.0,-.45,.7],[-2.25,-1.85,.65],[-1.55,-1.8,.55],[2.95,1.05,.75],[3.05,-.25,.82],[2.45,-1.75,.58],[1.45,1.75,.55],[-1.15,.15,.55],[1.85,.2,.55]].forEach(([x,z,s],i)=>careerTree(parent,x,z,s,i%3!==0));
+  // Bushes, stepping stones and tiny route markers.
+  [[-1.2,-.3],[1.45,-1.35],[.95,1.05],[-2.7,-1.45],[2.75,.85]].forEach(([x,z])=>{const b=new THREE.Mesh(new THREE.IcosahedronGeometry(.19,1),flatMat(0x79b96b));b.position.set(x,.68,z);parent.add(b);});
+  // A small sign at the entrance.
+  careerBox(parent,'探索路線指示牌',1.55,.86,-.05,.42,.32,.07,0xf4e7c9);
+  careerBox(parent,'指示牌立柱',1.55,.64,-.05,.055,.42,.055,0x8a6546);
+}
+function createCareerIsland(def) {
+  const group=new THREE.Group();group.position.set(...def.position);group.userData.planet=def;
+  buildCareerIsometric(group);
+  // subtle illustrated outline halo, not a realistic atmospheric glow
+  const halo=new THREE.Mesh(new THREE.CircleGeometry(4.55,64),new THREE.MeshBasicMaterial({color:0x8fcf83,transparent:true,opacity:.08,side:THREE.DoubleSide,depthWrite:false}));
+  halo.rotation.x=-Math.PI/2;halo.position.y=-1.45;group.add(halo);
+  return {group,sphere:group};
+}
+
 export function createPlanet(def) {
+  if (def.id === 'career') return createCareerIsland(def);
   const group=new THREE.Group();
   group.position.set(...def.position);
   group.userData.planet=def;

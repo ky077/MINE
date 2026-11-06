@@ -1,2 +1,0 @@
-請將 Blender 匯出的 career_exploration_island.glb 放在此資料夾。
-檔案路徑必須是：models/career_exploration_island.glb

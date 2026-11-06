@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { planets } from './data.js';
 import { createScene, addStarfield, addNebula } from './scene.js';
 import { createPlanet, createCore } from './planets.js';
@@ -30,44 +29,11 @@ controls.autoRotateSpeed=.22;
 
 const planetMeshes=[];
 const planetGroups=new Map();
-const gltfLoader = new GLTFLoader();
 for(const def of planets){
-  const {group}=createPlanet(def); // Keep the procedural version as a fallback.
+  const {group,sphere}=createPlanet(def);
   universe.add(group);
   planetMeshes.push(group);
   planetGroups.set(def.id,group);
-
-  // Replace only Career Exploration with the detailed GLB when the file is present.
-  if(def.id === 'career'){
-    gltfLoader.load(
-      './models/career_exploration_island.glb',
-      (gltf) => {
-        // Remove the temporary sphere/diorama, then center and scale the imported model.
-        for(const child of [...group.children]){
-          group.remove(child);
-          child.traverse?.((node)=>{
-            if(node.geometry) node.geometry.dispose();
-            if(node.material){
-              const materials=Array.isArray(node.material)?node.material:[node.material];
-              materials.forEach(material=>material.dispose());
-            }
-          });
-        }
-        const model=gltf.scene;
-        const bounds=new THREE.Box3().setFromObject(model);
-        const center=bounds.getCenter(new THREE.Vector3());
-        const size=bounds.getSize(new THREE.Vector3());
-        model.position.sub(center);
-        const desiredWidth=8.2;
-        const scale=desiredWidth/Math.max(size.x,size.y,size.z);
-        model.scale.setScalar(scale);
-        group.add(model);
-        console.info('Career Exploration GLB loaded.');
-      },
-      undefined,
-      (error) => console.warn('Career GLB not found; using the built-in placeholder island.', error)
-    );
-  }
 }
 
 let cameraTween=null;

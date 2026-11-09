@@ -177,4 +177,5 @@ function resize() {
 }
 window.addEventListener('resize', resize);
 resize();
-document.getElementById('loading').classList.add('done');
+setTimeout(() => document.getElementById('loading').classList.add('done'),
+  reducedMotion.matches ? 0 : Math.max(0, 1100 - performance.now()));

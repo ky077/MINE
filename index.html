@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#d7f0ef">
+  <meta name="description" content="從中央探索學院出發，走過木橋探索五座主題島嶼與作品檔案">
+  <title>我的作品島嶼｜3D 互動作品集</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/style.css">
+  <script type="importmap">
+    {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}
+  </script>
+</head>
+<body>
+  <div id="app">
+    <canvas id="universe" aria-label="中央主島與五座主題島嶼，可拖曳旋轉並點選島嶼"></canvas>
+    <nav class="island-labels" id="islandLabels" aria-label="島嶼名稱"></nav>
+    <header class="topbar">
+      <a class="brand" href="#" id="homeButton" aria-label="返回島嶼全景"><span class="brand-mark">✳</span><span>KyLin's Work at NTNU<small>PORTFOLIO ISLAND</small></span></a>
+      <button class="home-button" id="resetView" type="button">↗ 返回全景</button>
+    </header>
+    <aside class="planet-legend" aria-label="五個作品分類">
+      <p class="legend-title">KyLin's Work at NTNU</p>
+      <div id="legendItems"></div>
+    </aside>
+    <div class="bottom-note">拖曳旋轉 <b>·</b> 滾輪縮放 <b>·</b> 點選島嶼開啟作品</div>
+
+    <section class="planet-panel" id="planetPanel" role="dialog" aria-modal="true" aria-labelledby="panelTitle" aria-hidden="true">
+      <div class="panel-backdrop" data-close></div>
+      <div class="panel-card">
+        <button class="close-button" id="closePanel" type="button" aria-label="關閉並返回全景">×</button>
+        <p class="panel-kicker" id="panelKicker"></p>
+        <h2 id="panelTitle"></h2>
+        <p class="panel-description" id="panelDescription"></p>
+        <div class="panel-meta"><span id="projectCount"></span><span>作品檔案</span></div>
+        <div class="project-tools">
+          <input id="projectSearch" type="search" placeholder="搜尋作品、年份或標籤" aria-label="搜尋作品" autocomplete="off">
+          <select id="yearFilter" aria-label="依年份篩選"><option value="">全部年份</option></select>
+        </div>
+        <div class="project-list" id="projectList"></div>
+      </div>
+    </section>
+
+    <section class="project-modal" id="projectModal" role="dialog" aria-modal="true" aria-labelledby="detailTitle" aria-hidden="true">
+      <div class="modal-backdrop" data-project-close></div>
+      <article class="project-modal-card">
+        <button class="close-button" id="closeProject" type="button" aria-label="關閉作品詳細資料">×</button>
+        <p class="project-modal-kicker" id="detailKicker"></p>
+        <h2 id="detailTitle"></h2>
+        <div class="detail-tags" id="detailTags"></div>
+        <p class="detail-year" id="detailYear"></p>
+        <div class="detail-gallery" id="detailGallery" aria-label="作品圖片"></div>
+        <a class="project-link is-disabled" id="detailLink" href="#" target="_blank" rel="noopener noreferrer" aria-disabled="true">尚無公開作品連結</a>
+      </article>
+    </section>
+    <div class="loading" id="loading"><span>✳</span><p>正在抵達島嶼…</p></div>
+  </div>
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>

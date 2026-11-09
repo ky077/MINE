@@ -31,13 +31,21 @@ export const locations = {
   diagnostics: [11.3, 1.3],
   research: [2.8, 10.7],
 };
+export const elevations = {
+  career: .15,
+  chinese: -.7,
+  reading: -1.2,
+  diagnostics: .45,
+  research: 1.05,
+};
+export const islandScale = definition => definition.radius / 3.35;
 
 function islandBase(parent, radius, grass, seed = 0, tint = null) {
   const sides = seed ? 9 + seed % 3 : 11;
   const surfaceColor = new THREE.Color(grass);
   if (tint) surfaceColor.lerp(new THREE.Color(tint), .28);
   // Faceted rock tapers into an uneven point, leaving a clear gap above the sea.
-  const rockColors = ['#c8ad86', '#b99b78', '#d5bb94', '#a99985', '#8f9791'];
+	const rockColors = ['#deb8b3', '#b5999d', '#7d6878', '#766a7f', '#675662'];
   const rings = [
     { radius: radius - .27, y: .07, driftX: 0, driftZ: 0 },
     { radius: radius * .91, y: -.47, driftX: .06, driftZ: -.04 },
@@ -87,7 +95,7 @@ function islandBase(parent, radius, grass, seed = 0, tint = null) {
   return top;
 }
 
-function glassCanopy(parent, radius, height, color) {
+function glassCanopy(parent, radius, baseY, color) {
   const tint = new THREE.Color(color);
   const canopy = new THREE.Mesh(
     new THREE.SphereGeometry(1, 40, 24, 0, Math.PI * 2, 0, Math.PI / 2),
@@ -113,8 +121,8 @@ function glassCanopy(parent, radius, height, color) {
         }`,
     }),
   );
-  canopy.position.y = .52;
-  canopy.scale.set(radius, height, radius);
+  canopy.position.y = baseY;
+  canopy.scale.setScalar(radius);
   canopy.castShadow = false;
   canopy.receiveShadow = false;
   canopy.renderOrder = 5;
@@ -123,7 +131,7 @@ function glassCanopy(parent, radius, height, color) {
   const rimMaterial = new THREE.MeshBasicMaterial({
     color: tint, transparent: true, opacity: .48, depthWrite: false,
   });
-  const rim = mesh(parent, new THREE.TorusGeometry(radius, .035, 6, 64), rimMaterial, 0, .54, 0);
+  const rim = mesh(parent, new THREE.TorusGeometry(radius, .035, 6, 64), rimMaterial, 0, baseY, 0);
   rim.rotation.x = Math.PI / 2;
   rim.castShadow = false;
   rim.receiveShadow = false;
@@ -181,11 +189,13 @@ function airport(parent, x, z, accent, scale = 1) {
   box(station, .22, .17, .04, M.glass, -.83, .79, .11);
   cylinder(station, .035, .04, .6, 6, M.stone, -.83, 1.3, -.12);
   mesh(station, new THREE.SphereGeometry(.1, 8, 6), glow, -.83, 1.62, -.12);
-  return new THREE.Vector3(parent.position.x + x, 1.08, parent.position.z + z);
+  return new THREE.Vector3(parent.position.x + x * parent.scale.x,
+    parent.position.y + 1.3 * parent.scale.y,
+    parent.position.z + z * parent.scale.z);
 }
 
 function mainIsland(group) {
-  islandBase(group, 4.1, '#8bbf83');
+  islandBase(group, 5.2, '#8bbf83');
   path(group, [[-3.5,.1],[-2.1,-.3],[-.9,-.1],[.2,.8],[1.2,.4],[3.5,.1]], .35);
   path(group, [[-1.7,-3.3],[-1.3,-1.9],[-.3,-.7],[.2,.8],[1.4,2],[2.5,3]], .32);
   // The academy's glass dome is the main island landmark.
@@ -516,21 +526,23 @@ export function createIsland(scene, definitions) {
   world.add(center);
   mainIsland(center);
   const pads = [airport(center, -2.55, -1.15, material('#88c9f2'), 1.1)];
-  glassCanopy(center, 5.1, 7.4, '#88c9f2');
+  glassCanopy(center, 5.25, .55, '#88c9f2');
   const builders = [careerIsland, chineseIsland, readingIsland, diagnosticsIsland, researchIsland];
   const landmarks = [center];
   const airportSites = [[.9, 2.2], [-.7, 2.1], [-2.15, .65], [-.6, 2.15], [2.25, .6]];
   definitions.forEach((definition, index) => {
     const group = new THREE.Group();
     const [x,z] = locations[definition.id];
-    group.position.set(x, 0, z);
+    group.position.set(x, elevations[definition.id], z);
     group.userData.islandId = definition.id;
     group.userData.phase = index * 1.3;
+    group.userData.baseScale = islandScale(definition);
+    group.scale.setScalar(group.userData.baseScale);
     world.add(group);
     const accent = material(definition.color);
     builders[index](group, accent, definition.color);
     pads.push(airport(group, ...airportSites[index], accent, .8));
-    glassCanopy(group, index === 4 ? 3.9 : 3.7, index === 1 ? 4.6 : 4.2, definition.color);
+    glassCanopy(group, index === 1 ? 3.13 : index === 4 ? 3.38 : 3.23, .55, definition.color);
     landmarks.push(group);
   });
   const updateTraffic = createTraffic(world, pads, ['#88c9f2', ...definitions.map(item => item.color)]);

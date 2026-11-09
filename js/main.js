@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { planets } from './data.js';
 import { createScene } from './scene.js';
-import { createIsland, locations } from './island.js';
+import { createIsland, locations, elevations, islandScale } from './island.js';
 import { createInteractionManager } from './interactions.js';
 import { initUI, openPlanet } from './ui.js';
 
@@ -53,7 +53,7 @@ function focus(id) {
   }
   const [x, z] = locations[id];
   if (x === undefined) return;
-  const target = new THREE.Vector3(x, .8, z);
+  const target = new THREE.Vector3(x, elevations[id] + .8 * islandScale(planets.find(item => item.id === id)), z);
   const position = target.clone().add(new THREE.Vector3(0, 9, 13));
   moveCamera(position, target);
   openPlanet(id);
@@ -75,10 +75,11 @@ createInteractionManager({
 
 const labelLayer = document.getElementById('islandLabels');
 const labels = [
-  { id: 'main', text: "KyLin's Work at NTNU", x: -3.2, z: 0, y: 4.55, color: '#de7863' },
+  { id: 'main', text: "KyLin's Work at NTNU", x: -3.2, z: 0, y: 5.1, color: '#de7863' },
   ...planets.map(planet => {
     const [x, z] = locations[planet.id];
-    return { id: planet.id, text: `${planet.number} ${planet.name}`, x, z, y: 3.6, color: planet.color };
+    return { id: planet.id, text: `${planet.number} ${planet.name}`, x, z,
+      y: elevations[planet.id] + 3.8 * islandScale(planet), color: planet.color };
   }),
 ].map(label => {
   const button = document.createElement('button');
@@ -145,7 +146,8 @@ function tick(now) {
   for (const group of landmarks) {
     const active = group.userData.islandId === hoveredId;
     const idle = reducedMotion.matches ? 1 : 1 + Math.sin(now * .0015 + group.userData.phase) * .008;
-    group.scale.lerp(new THREE.Vector3().setScalar(active ? 1.055 : idle), .12);
+    group.scale.lerp(new THREE.Vector3().setScalar(
+      (group.userData.baseScale || 1) * (active ? 1.055 : idle)), .12);
   }
   if (tween) {
     const progress = Math.min(1, (now - tween.start) / tween.duration);

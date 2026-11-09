@@ -10,6 +10,7 @@ function escapeHTML(value='') {
 
 export function initUI({ onSelectPlanet, onHome }) {
   const legend = $('legendItems');
+  $('legendTotal').textContent = `${projects.length}`;
   legend.innerHTML = planets.map(p => `
     <button class="legend-item" data-planet="${p.id}">
       <span class="legend-dot" style="color:${p.color};background:${p.color}"></span>

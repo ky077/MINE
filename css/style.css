@@ -1,6 +1,6 @@
 * { box-sizing: border-box; }
 
-:root { font-family: "Noto Sans TC", sans-serif; font-size: 20px; color: #173f45; background: #d7f0ef; }
+:root { font-family: "Noto Sans TC", sans-serif; font-size: 20px; color: #173f45; background: #060b22; }
 
 html, body, #app { width: 100%; height: 100%; margin: 0; overflow: hidden; }
 
@@ -23,8 +23,8 @@ button { cursor: pointer; }
 
 .topbar > * { pointer-events: auto; }
 
-.brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: #173f45; font-weight: 700; letter-spacing: .04em; line-height: 1.2; font-size: .9rem; }
-.brand small { display: block; margin-top: 5px; font: 14px "DM Mono", monospace; letter-spacing: .12em; color: #558088; }
+.brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: #f5f5ff; font-weight: 700; letter-spacing: .04em; line-height: 1.2; font-size: .9rem; }
+.brand small { display: block; margin-top: 5px; font: 14px "DM Mono", monospace; letter-spacing: .12em; color: #b8c9e8; }
 
 .brand-mark { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 14px; background: #fffaf0; color: #ef8b70; font-size: 1.5rem; box-shadow: 0 6px 22px #246a7522; }
 

@@ -75,7 +75,7 @@ createInteractionManager({
 
 const labelLayer = document.getElementById('islandLabels');
 const labels = [
-  { id: 'main', text: "KyLin's Work at NTNU", x: 0, z: 0, y: 4.55, color: '#de7863' },
+  { id: 'main', text: "KyLin's Work at NTNU", x: -3.2, z: 0, y: 4.55, color: '#de7863' },
   ...planets.map(planet => {
     const [x, z] = locations[planet.id];
     return { id: planet.id, text: `${planet.number} ${planet.name}`, x, z, y: 3.6, color: planet.color };

@@ -8,7 +8,7 @@ import { initUI, openPlanet } from './ui.js';
 
 const canvas = document.getElementById('universe');
 const { scene, camera, renderer } = createScene(canvas);
-const { landmarks } = createIsland(scene, planets);
+const { landmarks, updateTraffic } = createIsland(scene, planets);
 const controls = new OrbitControls(camera, canvas);
 controls.target.set(0, 0, 0);
 controls.enableDamping = true;
@@ -141,6 +141,7 @@ function updateLabels() {
 
 function tick(now) {
   requestAnimationFrame(tick);
+  updateTraffic(now, reducedMotion.matches);
   for (const group of landmarks) {
     const active = group.userData.islandId === hoveredId;
     const idle = reducedMotion.matches ? 1 : 1 + Math.sin(now * .0015 + group.userData.phase) * .008;

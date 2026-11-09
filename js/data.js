@@ -21,7 +21,7 @@ export const planets = [
     "number": "02",
     "name": "華語學習島",
     "english": "CHINESE LEARNING",
-    "description": "走過石橋與河流，在中式書院、亭台和寶塔間探索華語與漢字文化。",
+    "description": "造訪中式書院、亭台和寶塔，探索華語與漢字文化。",
     "color": "#a78bfa",
     "accent": "#d5c5ff",
     "count": 16,

@@ -163,31 +163,25 @@ function tower(parent, x, z, body = M.cream, cap = M.roof) {
   box(parent, .18, .34, .05, M.dark, x, 1.55, z + .36);
 }
 
-function bridge(world, [x, z], radius) {
-  const distance = Math.hypot(x, z);
-  const ux = x / distance, uz = z / distance;
-  const start = 3.65, end = distance - radius + .2;
-  const length = end - start;
-  if (length <= 0) return;
-  const angle = Math.atan2(ux, uz);
-  const n = Math.ceil(length / .32);
-  for (let i = 0; i <= n; i++) {
-    const r = start + i * length / n;
-    const plank = box(world, 1.2, .11, .24, M.wood, ux * r, .52, uz * r);
-    plank.rotation.y = angle;
-  }
-  const middle = (start + end) / 2;
-  const nx = -uz, nz = ux;
-  for (const side of [-1, 1]) {
-    const rail = box(world, .08, .07, length + .1, M.wood,
-      ux * middle + nx * side * .65, .88, uz * middle + nz * side * .65);
-    rail.rotation.y = angle;
-    for (let i = 0; i <= 3; i++) {
-      const r = start + i * length / 3;
-      cylinder(world, .065, .075, .7, 6, M.wood,
-        ux * r + nx * side * .65, .62, uz * r + nz * side * .65);
-    }
-  }
+function airport(parent, x, z, accent, scale = 1) {
+  const station = new THREE.Group();
+  station.position.set(x, 0, z);
+  station.scale.setScalar(scale);
+  parent.add(station);
+  const runway = material('#e3e8e9');
+  const glow = material('#85e5f2', { emissive: '#36b9dc', emissiveIntensity: .6 });
+  cylinder(station, .63, .68, .12, 12, runway, 0, .64, 0);
+  const ring = mesh(station, new THREE.TorusGeometry(.49, .035, 6, 24), glow, 0, .72, 0);
+  ring.rotation.x = Math.PI / 2;
+  box(station, .42, .035, .07, accent, 0, .73, 0);
+  box(station, .07, .035, .33, accent, -.18, .73, 0);
+  box(station, .07, .035, .33, accent, .18, .73, 0);
+  box(station, .45, .35, .42, M.cream, -.83, .77, -.12);
+  box(station, .54, .09, .51, accent, -.83, .99, -.12);
+  box(station, .22, .17, .04, M.glass, -.83, .79, .11);
+  cylinder(station, .035, .04, .6, 6, M.stone, -.83, 1.3, -.12);
+  mesh(station, new THREE.SphereGeometry(.1, 8, 6), glow, -.83, 1.62, -.12);
+  return new THREE.Vector3(parent.position.x + x, 1.08, parent.position.z + z);
 }
 
 function mainIsland(group) {
@@ -430,6 +424,89 @@ function researchIsland(group, accent, color) {
     tree(group,x,z,.53);
 }
 
+function spacecraft(type, color) {
+  const craft = new THREE.Group();
+  const shell = material('#f2f6fa', { metalness: .18, roughness: .35 });
+  const accent = material(color, { metalness: .15, roughness: .38 });
+  const engine = material('#ffc36a', { emissive: '#ff8b42', emissiveIntensity: .85 });
+  if (type === 'rocket') {
+    cylinder(craft, .16, .23, .68, 10, shell, 0, .08, 0);
+    cone(craft, .18, .35, 10, accent, 0, .59, 0);
+    cylinder(craft, .09, .09, .08, 10, M.glass, 0, .23, .17).rotation.x = Math.PI / 2;
+    for (const side of [-1, 1]) box(craft, .09, .25, .22, accent, side * .22, -.23, 0);
+    cone(craft, .11, .25, 8, engine, 0, -.46, 0).rotation.z = Math.PI;
+  } else if (type === 'aircraft') {
+    cylinder(craft, .1, .15, .88, 8, shell, 0, .07, 0).rotation.x = Math.PI / 2;
+    cone(craft, .12, .28, 8, accent, 0, .07, .55).rotation.x = Math.PI / 2;
+    box(craft, .95, .05, .27, accent, 0, .05, -.04);
+    box(craft, .46, .05, .16, accent, 0, .12, -.35);
+    box(craft, .1, .2, .16, accent, 0, .2, -.34);
+    mesh(craft, new THREE.SphereGeometry(.12, 10, 6), M.glass, 0, .18, .16);
+    cylinder(craft, .09, .09, .04, 8, engine, 0, .07, -.47).rotation.x = Math.PI / 2;
+  } else {
+    const hull = mesh(craft, new THREE.SphereGeometry(.48, 18, 8), accent);
+    hull.scale.set(1, .24, 1);
+    const dome = mesh(craft, new THREE.SphereGeometry(.24, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2),
+      M.glass, 0, .1, 0);
+    dome.castShadow = false;
+    const rim = mesh(craft, new THREE.TorusGeometry(.4, .035, 6, 24), engine);
+    rim.rotation.x = Math.PI / 2;
+  }
+  return craft;
+}
+
+function createTraffic(world, pads, colors) {
+  const routes = new THREE.Group();
+  world.add(routes);
+  const types = ['rocket', 'aircraft', 'saucer'];
+  const vehicles = Array.from({ length: 7 }, (_, index) => {
+    const type = index < 3 ? types[index] : types[Math.floor(Math.random() * types.length)];
+    const origin = index % pads.length;
+    const object = spacecraft(type, colors[origin]);
+    routes.add(object);
+    return { object, type, origin, current: origin, next: origin,
+      phase: 'dwell', start: performance.now(), duration: 1.4 + Math.random() * 3 };
+  });
+  return (now, reducedMotion = false) => {
+    for (const vehicle of vehicles) {
+      if (reducedMotion) {
+        vehicle.object.position.copy(pads[vehicle.origin]);
+        vehicle.object.rotation.set(0, 0, 0);
+        continue;
+      }
+      const elapsed = (now - vehicle.start) / 1000;
+      if (elapsed >= vehicle.duration) {
+        if (vehicle.phase === 'dwell') {
+          vehicle.phase = 'flight';
+          const other = Math.floor(Math.random() * (pads.length - 1));
+          vehicle.next = other >= vehicle.current ? other + 1 : other;
+          vehicle.duration = 5 + Math.random() * 2.5;
+        } else {
+          vehicle.phase = 'dwell';
+          vehicle.current = vehicle.next;
+          vehicle.duration = 2 + Math.random() * 2.5;
+        }
+        vehicle.start = now;
+      }
+      if (vehicle.phase === 'flight') {
+        const t = Math.min(1, (now - vehicle.start) / (vehicle.duration * 1000));
+        const from = pads[vehicle.current], to = pads[vehicle.next];
+        vehicle.object.position.lerpVectors(from, to, t);
+        vehicle.object.position.y += Math.sin(Math.PI * t) * (4.2 + vehicle.origin * .23);
+        vehicle.object.rotation.y = Math.atan2(to.x - from.x, to.z - from.z);
+        vehicle.object.rotation.z = vehicle.type === 'aircraft' ? Math.sin(Math.PI * t) * .12 : 0;
+        vehicle.object.rotation.x = vehicle.type === 'rocket' ? .22 * Math.sin(Math.PI * t) : 0;
+      } else {
+        vehicle.object.position.copy(pads[vehicle.current]);
+        vehicle.object.position.y += Math.sin(now * .003 + vehicle.origin) * .055;
+        vehicle.object.rotation.z = 0;
+        vehicle.object.rotation.x = 0;
+        if (vehicle.type === 'saucer') vehicle.object.rotation.y += .012;
+      }
+    }
+  };
+}
+
 export function createIsland(scene, definitions) {
   const world = new THREE.Group();
   scene.add(world);
@@ -438,9 +515,11 @@ export function createIsland(scene, definitions) {
   center.userData.phase = 0;
   world.add(center);
   mainIsland(center);
+  const pads = [airport(center, -2.55, -1.15, material('#88c9f2'), 1.1)];
   glassCanopy(center, 5.1, 7.4, '#88c9f2');
   const builders = [careerIsland, chineseIsland, readingIsland, diagnosticsIsland, researchIsland];
   const landmarks = [center];
+  const airportSites = [[.9, 2.2], [-.7, 2.1], [-2.15, .65], [-.6, 2.15], [2.25, .6]];
   definitions.forEach((definition, index) => {
     const group = new THREE.Group();
     const [x,z] = locations[definition.id];
@@ -450,9 +529,10 @@ export function createIsland(scene, definitions) {
     world.add(group);
     const accent = material(definition.color);
     builders[index](group, accent, definition.color);
+    pads.push(airport(group, ...airportSites[index], accent, .8));
     glassCanopy(group, index === 4 ? 3.9 : 3.7, index === 1 ? 4.6 : 4.2, definition.color);
-    bridge(world, [x,z], index === 4 ? 3.3 : index === 1 ? 3.05 : 3.15);
     landmarks.push(group);
   });
-  return { landmarks, world };
+  const updateTraffic = createTraffic(world, pads, ['#88c9f2', ...definitions.map(item => item.color)]);
+  return { landmarks, world, updateTraffic };
 }

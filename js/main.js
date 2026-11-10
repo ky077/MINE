@@ -48,7 +48,7 @@ function moveCamera(position, target) {
 
 function focus(id) {
   if (id === 'main') {
-    window.location.assign(new URL('./index.html', window.location.href));
+    home();
     return;
   }
   const [x, z] = locations[id];
@@ -75,7 +75,7 @@ createInteractionManager({
 
 const labelLayer = document.getElementById('islandLabels');
 const labels = [
-  { id: 'main', text: "KyLin's Work at NTNU", x: -3.2, z: 0, y: 5.1, color: '#de7863' },
+  { id: 'main', text: "KyLin's Work at NTNU", x: 0, z: 0, y: 6, color: '#de7863' },
   ...planets.map(planet => {
     const [x, z] = locations[planet.id];
     return { id: planet.id, text: `${planet.number} ${planet.name}`, x, z,
@@ -99,8 +99,7 @@ function updateLabels() {
   const height = labelLayer.clientHeight;
   const visibleLabels = [];
   for (const label of labels) {
-    const anchorY = label.id === 'main' && width < 650 ? 6 : label.y;
-    labelPosition.set(label.x, anchorY, label.z).project(camera);
+    labelPosition.set(label.x, label.y, label.z).project(camera);
     const visible = labelPosition.z > -1 && labelPosition.z < 1 &&
       Math.abs(labelPosition.x) < 1.1 && Math.abs(labelPosition.y) < 1.1;
     label.button.hidden = !visible;

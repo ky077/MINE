@@ -81,7 +81,6 @@ function openProject(id) {
     const src = `./${relativePath}`;
     return `<figure>
       <img src="${src}" alt="${escapeHTML(p.name)} 網站截圖 ${index + 1}" loading="lazy">
-      <figcaption>${escapeHTML(relativePath)}</figcaption>
     </figure>`;
   }).join('');
 

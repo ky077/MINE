@@ -35,7 +35,7 @@ button { cursor: pointer; }
 
 .planet-legend { position: absolute; z-index: 2; top: 22%; right: 20px; width: 320px; padding: 20px; background: rgba(255, 253, 241, 0.91); border: 1px solid #ffffff; border-radius: 20px; box-shadow: 0 16px 50px rgba(55, 111, 113, 0.161); backdrop-filter: blur(14px); }
 
-.legend-title { font-size: .9rem; font-weight: 700; letter-spacing: .02em; margin: 0 0 10px; color: #37666d; }
+.legend-title { font-size: .9rem; font-weight: 700; letter-spacing: .02em; margin: 0 0 10px; color: #37666d; display: flex; }
 
 .legend-total { margin-top: 3px; color: #5a8085; font-size: .8rem; font-weight: 500; margin-left: auto; }
 
@@ -48,7 +48,7 @@ button { cursor: pointer; }
 
 .legend-count { margin-left: auto; }
 
-.bottom-note { position: absolute; z-index: 2; bottom: 22px; left: 50%; transform: translateX(-50%); padding: 10px 18px; border-radius: 100px; background: rgba(255, 253, 241, 0.91); color: #49767b; white-space: nowrap; font-size: .7rem; box-shadow: 0 5px 20px rgba(55, 111, 113, 0.106); pointer-events: none; }
+.bottom-note { position: absolute; z-index: 2; bottom: 22px; right: 0; padding: .5rem 2rem; color: rgba(255, 253, 241, 0.75); white-space: nowrap; font-size: .7rem; pointer-events: none; }
 
 .bottom-note b { margin: 0 8px; color: #b9c9bc; }
 

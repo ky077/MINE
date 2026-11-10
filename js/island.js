@@ -45,7 +45,8 @@ function islandBase(parent, radius, grass, seed = 0, tint = null) {
   const surfaceColor = new THREE.Color(grass);
   if (tint) surfaceColor.lerp(new THREE.Color(tint), .28);
   // Faceted rock tapers into an uneven point, leaving a clear gap above the sea.
-	const rockColors = ['#deb8b3', '#b5999d', '#7d6878', '#766a7f', '#675662'];
+	//const rockColors = ['#deb8b3', '#b5999d', '#7d6878', '#766a7f', '#675662'];
+	const rockColors = ['#deb8b3', '#c6a7ac', '#b5999d', '#a88e92', '#b5999d'];
   const rings = [
     { radius: radius - .27, y: .07, driftX: 0, driftZ: 0 },
     { radius: radius * .91, y: -.47, driftX: .06, driftZ: -.04 },
@@ -173,7 +174,7 @@ function tower(parent, x, z, body = M.cream, cap = M.roof) {
 
 function airport(parent, x, z, accent, scale = 1) {
   const station = new THREE.Group();
-  station.position.set(x, 0, z);
+  station.position.set(x, .7 * (1 - scale), z);
   station.scale.setScalar(scale);
   parent.add(station);
   const runway = material('#e3e8e9');
@@ -255,18 +256,68 @@ function careerIsland(group, accent, color) {
   const meadow = material('#a0cd78');
   const cliff = material('#9aa9a0');
   const snow = material('#f4f5e9');
+  const stream = material('#69c8d5', { roughness: .22, metalness: .08 });
   // The mountain and wooded hills sit behind the winding exploration route.
   cone(group, 1.05, 1.8, 7, cliff, -1.55, 1.44, -1.35);
   cone(group, .39, .62, 7, snow, -1.55, 2.52, -1.35);
   cone(group, .8, 1.28, 7, hill, -.55, 1.14, -1.8);
   cone(group, .65, .98, 7, meadow, -2.35, 1.04, -.7);
+  cone(group, .7, 1.1, 6, cliff, -2.45, 1.08, -1.8);
+  cone(group, .62, .95, 7, hill, .35, 1, -2.55);
+  cone(group, .55, .72, 6, meadow, -2.65, .89, .45);
+  // A shallow winding stream crosses the exploration route beneath a timber bridge.
+  const watercourse = [[-2.7,-.45],[-2.05,-.05],[-1.45,.35],[-.82,.9],[-.3,1.55],[.05,2.15]];
+  path(group, watercourse, .36, stream);
   path(group, [[-2.55,.3],[-1.8,.8],[-1.1,.45],[-.65,-.3],[-.1,-.85],
     [.65,-.35],[1.45,.35],[2.4,.5]], .3);
   path(group, [[-.7,-.25],[-.25,1.1],[.65,1.6],[1.45,1.85]], .25);
-  // Career exploration base, experience cabins and a single lookout tower.
+  path(group, [[-2.35,1.55],[-1.6,1.35],[-.9,1.8],[-.15,2.3]], .2);
+  const bridge = new THREE.Group();
+  bridge.position.set(-1.53, 0, .56);
+  bridge.rotation.y = Math.atan2(.7, -.35);
+  group.add(bridge);
+  const archHeight = z => .68 + .22 * (1 - (z / .5) ** 2);
+  for (let plank = 0; plank < 9; plank++) {
+    const z = -.44 + plank * .11;
+    box(bridge, .72, .09, .115, M.wood, 0, archHeight(z), z);
+  }
+  for (const side of [-1, 1]) {
+    for (const z of [-.44, 0, .44])
+      cylinder(bridge, .035, .04, .3, 6, M.wood,
+        side * .35, archHeight(z) + .19, z);
+    for (let section = 0; section < 8; section++) {
+      const z1 = -.44 + section * .11;
+      const z2 = z1 + .11;
+      const y1 = archHeight(z1) + .34;
+      const y2 = archHeight(z2) + .34;
+      const rail = cylinder(bridge, .032, .032,
+        Math.hypot(z2 - z1, y2 - y1), 6, M.wood,
+        side * .35, (y1 + y2) / 2, (z1 + z2) / 2);
+      rail.rotation.x = Math.atan2(z2 - z1, y2 - y1);
+    }
+  }
+  // Career exploration base, front experience cabin and a single lookout tower.
   house(group, .5, -.75, 1.1, .86, accent);
   box(group, .55, .3, .055, M.dark, .5, 1.19, -.29);
-  house(group, -1.85, .95, .73, .68, accent);
+  const magnifier = new THREE.Group();
+  magnifier.position.set(.5, 2.62, -.38);
+  magnifier.rotation.y = -.25;
+  group.add(magnifier);
+  const rim = material('#f9d27c', { metalness: .55, roughness: .25 });
+  mesh(magnifier, new THREE.TorusGeometry(.38, .055, 10, 32), rim);
+  const glass = new THREE.Mesh(new THREE.CircleGeometry(.37, 32),
+    new THREE.MeshPhysicalMaterial({ color: '#a9ecf5', transparent: true,
+      opacity: .32, metalness: 0, roughness: .08, transmission: .3,
+      side: THREE.DoubleSide, depthWrite: false }));
+  glass.position.z = .012;
+  magnifier.add(glass);
+  const handleStart = new THREE.Vector3(.29, -.29, 0);
+  const handleEnd = new THREE.Vector3(.04, -1.03, 0);
+  const handleDirection = new THREE.Vector3().subVectors(handleEnd, handleStart);
+  const handle = cylinder(magnifier, .065, .08, handleDirection.length(), 10,
+    M.wood, ...handleStart.clone().add(handleEnd).multiplyScalar(.5).toArray());
+  handle.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0),
+    handleDirection.normalize());
   house(group, 1.95, -.7, .72, .68, accent);
   const lookout = new THREE.Group();
   lookout.position.set(1.55, 0, -1.8);
@@ -280,9 +331,13 @@ function careerIsland(group, accent, color) {
   const roof = cone(lookout, .77, .52, 4, accent, 0, 2.65, 0);
   roof.rotation.y = Math.PI / 4;
   for (const [x,z,s] of [[-2.6,-1.7,.65],[-2.35,1.8,.55],[-1.4,-2.35,.57],
-    [-1.25,1.8,.47],[.15,-2.3,.64],[2.45,-1.55,.56],[2.5,1.3,.58]]) tree(group,x,z,s);
+    [-1.25,1.8,.47],[.15,-2.3,.64],[2.45,-1.55,.56],[2.5,1.3,.58],
+    [-2.65,1.05,.48],[-1.85,-2.55,.52],[.85,-2.5,.5],[2.7,.35,.44]]) tree(group,x,z,s);
   for (const [x,z,s] of [[-2.2,-.15,.54],[-.45,-2.2,.58],[1.05,-2.35,.62],
-    [2.45,-.2,.55]]) tree(group,x,z,s,true);
+    [2.45,-.2,.55],[-.7,2.35,.5],[1.2,2.2,.45]]) tree(group,x,z,s,true);
+  for (const [x,z,size] of [[-2.35,-.4,.16],[-1.9,.45,.12],[-.95,1.3,.17],
+    [-.1,1.8,.14],[1.05,.9,.18],[2.05,.45,.13]])
+    mesh(group, new THREE.IcosahedronGeometry(size, 0), cliff, x, .68, z);
 }
 
 function chineseIsland(group, accent, color) {
@@ -434,6 +489,174 @@ function researchIsland(group, accent, color) {
     tree(group,x,z,.53);
 }
 
+const characterMaterials = {
+  skin: material('#e7b69a'), pale: material('#f1dbc9'), grey: material('#aeb7bd'),
+  dark: material('#26394b'), hair: material('#493a35'), blond: material('#efd578'),
+  eye: material('#182638'), dog: material('#bc906c'), cat: material('#8b93a1'),
+  mouse: material('#b7a9a4'), nose: material('#d97f8c'),
+};
+
+function person(kind, outfit = M.dark) {
+  const figure = new THREE.Group();
+  const legs = [];
+  const arms = [];
+  const alien = kind === 'grey';
+  const nordic = kind === 'nordic';
+  const skin = alien ? characterMaterials.grey : nordic ? characterMaterials.pale : characterMaterials.skin;
+  const body = cylinder(figure, alien ? .105 : .14, .16, .36, 8, outfit, 0, .39, 0);
+  body.castShadow = true;
+  for (const side of [-1, 1]) {
+    legs.push(cylinder(figure, .045, .052, .25, 6, outfit, side * .085, .13, 0));
+    const arm = cylinder(figure, .035, .04, .27, 6, skin, side * .175, .4, 0);
+    arm.rotation.z = side * .2;
+    arms.push(arm);
+  }
+  const head = mesh(figure, new THREE.SphereGeometry(alien ? .215 : .15, 12, 8), skin, 0, .72, 0);
+  if (alien) head.scale.set(1.1, .85, .85);
+  if (!alien) {
+    const hair = mesh(figure, new THREE.SphereGeometry(.155, 10, 6),
+      nordic ? characterMaterials.blond : characterMaterials.hair, 0, .8, -.02);
+    hair.scale.y = nordic ? .8 : .48;
+    if (nordic) {
+      for (const side of [-1, 1])
+        cone(figure, .07, .3, 6, characterMaterials.blond, side * .13, .59, -.02);
+    }
+  }
+  for (const side of [-1, 1]) {
+    const eye = mesh(figure, new THREE.SphereGeometry(alien ? .065 : .025, 8, 6),
+      characterMaterials.eye, side * (alien ? .095 : .055), .73, alien ? .155 : .138);
+    if (alien) eye.scale.set(.8, 1.25, .3);
+  }
+  figure.userData.legs = legs;
+  figure.userData.arms = arms;
+  return figure;
+}
+
+function animal(kind) {
+  const creature = new THREE.Group();
+  const fur = characterMaterials[kind];
+  const small = kind === 'mouse';
+  const body = mesh(creature, new THREE.SphereGeometry(small ? .13 : .21, 10, 7), fur, 0, .18, 0);
+  body.scale.set(.8, .65, 1.25);
+  mesh(creature, new THREE.SphereGeometry(small ? .09 : .13, 10, 7), fur,
+    0, small ? .22 : .27, small ? .16 : .22);
+  for (const side of [-1, 1]) {
+    if (kind === 'mouse') {
+      mesh(creature, new THREE.SphereGeometry(.065, 8, 6), fur, side * .075, .31, .13);
+    } else if (kind === 'cat') {
+      cone(creature, .065, .15, 5, fur, side * .09, .42, .22);
+    } else {
+      const ear = box(creature, .065, .14, .05, fur, side * .13, .29, .21);
+      ear.rotation.z = side * .35;
+    }
+    mesh(creature, new THREE.SphereGeometry(.015, 6, 4), characterMaterials.eye,
+      side * (small ? .04 : .055), small ? .24 : .29, small ? .24 : .33);
+    for (const z of [-.13, .13])
+      cylinder(creature, .025, .028, .12, 5, fur, side * .11, .06, z);
+  }
+  mesh(creature, new THREE.SphereGeometry(.025, 6, 4), characterMaterials.nose,
+    0, small ? .2 : .25, small ? .26 : .35);
+  const tailPoints = [new THREE.Vector3(0, .2, -.18),
+    new THREE.Vector3(.1, .22, -.34), new THREE.Vector3(.15, .34, -.48)];
+  mesh(creature, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(tailPoints), 6,
+    small ? .018 : .035, 5), fur);
+  return creature;
+}
+
+function livestock(kind) {
+  const creature = new THREE.Group();
+  const fur = material(kind === 'cow' ? '#f5f1e7' : '#d8b993');
+  const muzzle = material(kind === 'cow' ? '#e6b6ae' : '#ead5b9');
+  const body = mesh(creature, new THREE.SphereGeometry(.27, 10, 7), fur, 0, .34, 0);
+  body.scale.set(1, .76, 1.35);
+  for (const side of [-1, 1]) for (const z of [-.2, .2])
+    cylinder(creature, .045, .05, .22, 6, fur, side * .18, .12, z);
+  if (kind === 'cow') {
+    mesh(creature, new THREE.SphereGeometry(.2, 10, 7), fur, 0, .43, .37);
+    mesh(creature, new THREE.SphereGeometry(.13, 8, 6), muzzle, 0, .35, .53).scale.y = .65;
+    for (const side of [-1, 1]) {
+      cone(creature, .065, .16, 6, M.cream, side * .16, .65, .34);
+      mesh(creature, new THREE.SphereGeometry(.08, 7, 5), characterMaterials.dark,
+        side * .2, .4, side * .03);
+    }
+  } else {
+    cylinder(creature, .105, .13, .53, 8, fur, 0, .65, .27);
+    mesh(creature, new THREE.SphereGeometry(.15, 9, 6), fur, 0, .93, .3);
+    mesh(creature, new THREE.SphereGeometry(.085, 8, 6), muzzle, 0, .86, .43);
+    for (const side of [-1, 1])
+      cone(creature, .045, .16, 5, fur, side * .1, 1.08, .3);
+  }
+  return creature;
+}
+
+function addPasture(group, x, z, scale, islandIndex, kind) {
+  const field = new THREE.Group();
+  field.position.set(x, 0, z);
+  field.scale.setScalar(scale);
+  group.add(field);
+  cylinder(field, .82, .86, .035, 12, material('#a9cc82'), 0, .59, 0);
+  const posts = 9;
+  for (let i = 0; i < posts; i++) {
+    const angle = i * Math.PI * 2 / posts;
+    const next = (i + 1) * Math.PI * 2 / posts;
+    const ax = Math.cos(angle) * .85, az = Math.sin(angle) * .85;
+    const bx = Math.cos(next) * .85, bz = Math.sin(next) * .85;
+    cylinder(field, .035, .04, .42, 6, M.wood, ax, .82, az);
+    const rail = box(field, .045, .05, Math.hypot(bx - ax, bz - az), M.wood,
+      (ax + bx) / 2, .92, (az + bz) / 2);
+    rail.rotation.y = Math.atan2(bx - ax, bz - az);
+  }
+  const actor = livestock(kind);
+  actor.scale.setScalar(.68);
+  const anchorX = 0, anchorZ = 0;
+  actor.position.set(anchorX, .62, anchorZ);
+  field.add(actor);
+  return [{ actor, group: field, islandIndex, isPerson: false,
+    pasture: true, anchorX, anchorZ, range: .2,
+    x: anchorX, z: anchorZ, targetX: anchorX, targetZ: anchorZ,
+    speed: .12, phase: Math.random() * Math.PI * 2,
+    reserved: false, inFlight: false }];
+}
+
+function addResidents(group, radius, islandIndex, avoid, color) {
+  const residents = [];
+  const people = ['human', 'grey', 'nordic'];
+  const animals = ['dog', 'cat', 'mouse'];
+  const population = islandIndex < 6
+    ? 4 + (Math.random() < .35 ? 1 : 0)
+    : 2;
+  const kinds = Array.from({ length: population }, (_, i) =>
+    i < 3 ? people[(i + islandIndex) % 3] : people[Math.floor(Math.random() * 3)]);
+  if (islandIndex < 6) {
+    kinds.push(animals[islandIndex % animals.length]);
+    if (Math.random() < .65)
+      kinds.push(animals[(islandIndex + 1 + Math.floor(Math.random() * 2)) % animals.length]);
+  }
+  for (let i = 0; i < kinds.length; i++) {
+    const isPerson = i < population;
+    const actor = isPerson
+      ? person(kinds[i], material(color))
+      : animal(kinds[i]);
+    actor.scale.setScalar(islandIndex >= 6 ? .7 : 1);
+    const distance = radius * (.58 + Math.random() * .17);
+    let x, z;
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const angle = Math.random() * Math.PI * 2;
+      x = Math.cos(angle) * distance;
+      z = Math.sin(angle) * distance;
+      if (Math.hypot(x - avoid[0], z - avoid[1]) > .9) break;
+    }
+    actor.position.set(x, .59, z);
+    actor.rotation.y = Math.random() * Math.PI * 2;
+    group.add(actor);
+    residents.push({ actor, group, islandIndex,
+      isPerson, radius, x, z, targetX: x, targetZ: z,
+      speed: isPerson ? .3 + Math.random() * .14 : .22 + Math.random() * .12,
+      phase: Math.random() * Math.PI * 2, reserved: false, inFlight: false });
+  }
+  return residents;
+}
+
 function spacecraft(type, color) {
   const craft = new THREE.Group();
   const shell = material('#f2f6fa', { metalness: .18, roughness: .35 });
@@ -445,7 +668,7 @@ function spacecraft(type, color) {
     cylinder(craft, .09, .09, .08, 10, M.glass, 0, .23, .17).rotation.x = Math.PI / 2;
     for (const side of [-1, 1]) box(craft, .09, .25, .22, accent, side * .22, -.23, 0);
     cone(craft, .11, .25, 8, engine, 0, -.46, 0).rotation.z = Math.PI;
-  } else if (type === 'aircraft') {
+  } else if (type === 'shuttle') {
     cylinder(craft, .1, .15, .88, 8, shell, 0, .07, 0).rotation.x = Math.PI / 2;
     cone(craft, .12, .28, 8, accent, 0, .07, .55).rotation.x = Math.PI / 2;
     box(craft, .95, .05, .27, accent, 0, .05, -.04);
@@ -465,36 +688,99 @@ function spacecraft(type, color) {
   return craft;
 }
 
-function createTraffic(world, pads, colors) {
+function createTraffic(world, pads, colors, residents, groups, sites) {
   const routes = new THREE.Group();
   world.add(routes);
-  const types = ['rocket', 'aircraft', 'saucer'];
+  const types = ['rocket', 'shuttle', 'saucer'];
   const vehicles = Array.from({ length: 7 }, (_, index) => {
     const type = index < 3 ? types[index] : types[Math.floor(Math.random() * types.length)];
     const origin = index % pads.length;
     const object = spacecraft(type, colors[origin]);
     routes.add(object);
-    return { object, type, origin, current: origin, next: origin,
-      phase: 'dwell', start: performance.now(), duration: 1.4 + Math.random() * 3 };
+    return { object, passenger: null, type, origin, current: origin, next: origin,
+      phase: 'dwell', start: performance.now(), duration: 2.2 + Math.random() * 2.2 };
   });
+  const peopleOn = island => residents.filter(resident =>
+    resident.isPerson && !resident.inFlight && resident.islandIndex === island);
+  const populationMin = island => island < 6 ? 3 : 1;
+  const populationMax = island => island < 6 ? 5 : 3;
+  const reservePassenger = vehicle => {
+    if (vehicle.passenger) return;
+    const people = peopleOn(vehicle.current);
+    if (people.length - people.filter(person => person.reserved).length <=
+      populationMin(vehicle.current)) return;
+    const available = people.filter(person => !person.reserved);
+    const passenger = available[Math.floor(Math.random() * available.length)];
+    passenger.reserved = true;
+    passenger.targetX = sites[vehicle.current][0] + .55;
+    passenger.targetZ = sites[vehicle.current][1] + .3;
+    vehicle.passenger = passenger;
+  };
+  const disembark = (vehicle, island) => {
+    const passenger = vehicle.passenger;
+    if (!passenger) return;
+    passenger.inFlight = false;
+    passenger.reserved = false;
+    passenger.islandIndex = island;
+    passenger.group = groups[island];
+    passenger.radius = groups[island].userData.walkRadius;
+    groups[island].add(passenger.actor);
+    passenger.actor.scale.setScalar(island >= 6 ? .7 : 1);
+    passenger.x = sites[island][0] + .55;
+    passenger.z = sites[island][1] + .3;
+    passenger.targetX = passenger.x;
+    passenger.targetZ = passenger.z;
+    passenger.actor.position.set(passenger.x, .59, passenger.z);
+    vehicle.passenger = null;
+  };
+  vehicles.forEach(reservePassenger);
   return (now, reducedMotion = false) => {
     for (const vehicle of vehicles) {
       if (reducedMotion) {
+        if (vehicle.passenger?.inFlight) disembark(vehicle, vehicle.current);
+        if (vehicle.passenger) {
+          vehicle.passenger.reserved = false;
+          vehicle.passenger = null;
+        }
         vehicle.object.position.copy(pads[vehicle.origin]);
         vehicle.object.rotation.set(0, 0, 0);
+        vehicle.phase = 'dwell';
+        vehicle.current = vehicle.origin;
+        vehicle.start = now;
         continue;
       }
+      if (vehicle.phase === 'dwell') reservePassenger(vehicle);
       const elapsed = (now - vehicle.start) / 1000;
       if (elapsed >= vehicle.duration) {
         if (vehicle.phase === 'dwell') {
           vehicle.phase = 'flight';
-          const other = Math.floor(Math.random() * (pads.length - 1));
-          vehicle.next = other >= vehicle.current ? other + 1 : other;
+          const destinations = pads.map((_, index) => index).filter(index =>
+            index !== vehicle.current && peopleOn(index).length +
+              vehicles.filter(other => other.phase === 'flight' && other.passenger &&
+                other.next === index).length < populationMax(index));
+          if (vehicle.passenger && destinations.length) {
+            vehicle.next = destinations[Math.floor(Math.random() * destinations.length)];
+            const passenger = vehicle.passenger;
+            passenger.reserved = false;
+            passenger.inFlight = true;
+            passenger.islandIndex = -1;
+            vehicle.object.add(passenger.actor);
+            passenger.actor.scale.setScalar(.45);
+            passenger.actor.position.set(...(vehicle.type === 'rocket' ? [.27, .08, .05]
+              : vehicle.type === 'shuttle' ? [0, .22, .04] : [0, .2, 0]));
+          } else {
+            if (vehicle.passenger) vehicle.passenger.reserved = false;
+            vehicle.passenger = null;
+            const other = Math.floor(Math.random() * (pads.length - 1));
+            vehicle.next = other >= vehicle.current ? other + 1 : other;
+          }
           vehicle.duration = 5 + Math.random() * 2.5;
         } else {
           vehicle.phase = 'dwell';
           vehicle.current = vehicle.next;
+          disembark(vehicle, vehicle.current);
           vehicle.duration = 2 + Math.random() * 2.5;
+          reservePassenger(vehicle);
         }
         vehicle.start = now;
       }
@@ -504,7 +790,7 @@ function createTraffic(world, pads, colors) {
         vehicle.object.position.lerpVectors(from, to, t);
         vehicle.object.position.y += Math.sin(Math.PI * t) * (4.2 + vehicle.origin * .23);
         vehicle.object.rotation.y = Math.atan2(to.x - from.x, to.z - from.z);
-        vehicle.object.rotation.z = vehicle.type === 'aircraft' ? Math.sin(Math.PI * t) * .12 : 0;
+        vehicle.object.rotation.z = vehicle.type === 'shuttle' ? Math.sin(Math.PI * t) * .12 : 0;
         vehicle.object.rotation.x = vehicle.type === 'rocket' ? .22 * Math.sin(Math.PI * t) : 0;
       } else {
         vehicle.object.position.copy(pads[vehicle.current]);
@@ -522,7 +808,7 @@ function decorativeIsland(world, kind, x, y, z) {
   group.position.set(x, y, z);
   world.add(group);
   const grass = ['#83ae86', '#8ab9a3', '#a4c985'][kind];
-  islandBase(group, 1.55, grass, kind + 6);
+  islandBase(group, 1.95, grass, kind + 6);
   if (kind === 0) {
     const rock = material('#879a9b');
     cone(group, .65, 1.1, 5, rock, -.35, 1.08, -.25);
@@ -546,15 +832,16 @@ function decorativeIsland(world, kind, x, y, z) {
     }
     tree(group, 1.0, -.65, .32);
   }
-  glassCanopy(group, 1.6, .55, ['#91b8df', '#77d7df', '#a8d899'][kind]);
+  glassCanopy(group, 2, .55, ['#91b8df', '#77d7df', '#a8d899'][kind]);
+  return group;
 }
 
 function addDecorativeIslands(world) {
   const corners = [[-19, -.75, -14], [18, .4, 14], [-18, .85, 15]];
-  corners.forEach(([x, y, z], kind) => {
-    decorativeIsland(world, kind, x + (Math.random() - .5) * 2,
-      y + (Math.random() - .5) * .55, z + (Math.random() - .5) * 2);
-  });
+  return corners.map(([x, y, z], kind) => decorativeIsland(world, kind,
+    x + (Math.random() - .5) * 2,
+    y + (Math.random() - .5) * .55,
+    z + (Math.random() - .5) * 2));
 }
 
 export function createIsland(scene, definitions) {
@@ -563,12 +850,15 @@ export function createIsland(scene, definitions) {
   const center = new THREE.Group();
   center.userData.islandId = 'main';
   center.userData.phase = 0;
+  center.userData.walkRadius = 5.2;
   world.add(center);
   mainIsland(center);
   const pads = [airport(center, -2.55, -1.15, material('#88c9f2'), 1.1)];
+  const residents = addResidents(center, 5.2, 0, [-2.55, -1.15], '#88c9f2');
   glassCanopy(center, 5.25, .55, '#88c9f2');
   const builders = [careerIsland, chineseIsland, readingIsland, diagnosticsIsland, researchIsland];
   const landmarks = [center];
+  const islandGroups = [center];
   const airportSites = [[.9, 2.2], [-.7, 2.1], [-2.15, .65], [-.6, 2.15], [2.25, .6]];
   definitions.forEach((definition, index) => {
     const group = new THREE.Group();
@@ -577,15 +867,96 @@ export function createIsland(scene, definitions) {
     group.userData.islandId = definition.id;
     group.userData.phase = index * 1.3;
     group.userData.baseScale = islandScale(definition);
+    group.userData.walkRadius = index === 1 ? 3.05 : index === 4 ? 3.3 : 3.15;
     group.scale.setScalar(group.userData.baseScale);
     world.add(group);
     const accent = material(definition.color);
     builders[index](group, accent, definition.color);
     pads.push(airport(group, ...airportSites[index], accent, .8));
+    residents.push(...addResidents(group, index === 1 ? 3.05 : index === 4 ? 3.3 : 3.15,
+      index + 1, airportSites[index], definition.color));
     glassCanopy(group, index === 1 ? 3.13 : index === 4 ? 3.38 : 3.23, .55, definition.color);
     landmarks.push(group);
+    islandGroups.push(group);
   });
-  addDecorativeIslands(world);
-  const updateTraffic = createTraffic(world, pads, ['#88c9f2', ...definitions.map(item => item.color)]);
-  return { landmarks, world, updateTraffic };
+  const decorativeGroups = addDecorativeIslands(world);
+  const decorativeSites = [[1.15, .75], [1.2, .8], [-1.15, .8]];
+  const decorativeColors = ['#91b8df', '#77d7df', '#a8d899'];
+  const decorativePastures = [
+    [.55, .7, .65, 'cow'],
+    [-.8, .7, .65, 'alpaca'],
+    [.35, .55, .75, 'cow']
+  ];
+  decorativeGroups.forEach((group, index) => {
+    const islandIndex = index + 6;
+    const site = decorativeSites[index];
+    group.userData.walkRadius = 1.95;
+    pads.push(airport(group, ...site, material(decorativeColors[index]), .55));
+    residents.push(...addResidents(group, 1.95, islandIndex, site, decorativeColors[index]));
+    const [pastureX, pastureZ, pastureScale, livestockKind] = decorativePastures[index];
+    residents.push(...addPasture(group, pastureX, pastureZ, pastureScale,
+      islandIndex, livestockKind));
+    islandGroups.push(group);
+  });
+  const updateTraffic = createTraffic(world, pads,
+    ['#88c9f2', ...definitions.map(item => item.color), ...decorativeColors], residents,
+    islandGroups, [[-2.55, -1.15], ...airportSites, ...decorativeSites]);
+  let previousResidentTime = 0;
+  const updateResidents = (now, reducedMotion = false) => {
+    const delta = previousResidentTime ? Math.min((now - previousResidentTime) / 1000, .05) : 0;
+    previousResidentTime = now;
+    for (const resident of residents) {
+      if (resident.inFlight) continue;
+      if (reducedMotion) {
+        resident.actor.position.set(resident.x, resident.pasture ? .62 : .59, resident.z);
+        for (const leg of resident.actor.userData.legs || []) leg.rotation.x = 0;
+        continue;
+      }
+      let dx = resident.targetX - resident.x;
+      let dz = resident.targetZ - resident.z;
+      let distance = Math.hypot(dx, dz);
+      if (distance < .08 && !resident.reserved) {
+        const angle = Math.random() * Math.PI * 2;
+        let nextX, nextZ;
+        if (resident.pasture) {
+          const step = Math.random() * resident.range;
+          nextX = resident.anchorX + Math.cos(angle) * step;
+          nextZ = resident.anchorZ + Math.sin(angle) * step;
+        } else {
+          const step = .55 + Math.random() * .75;
+          nextX = resident.x + Math.cos(angle) * step;
+          nextZ = resident.z + Math.sin(angle) * step;
+          const limit = resident.radius * .78;
+          if (Math.hypot(nextX, nextZ) > limit) {
+            nextX = resident.x * .68;
+            nextZ = resident.z * .68;
+          }
+        }
+        resident.targetX = nextX;
+        resident.targetZ = nextZ;
+        dx = nextX - resident.x;
+        dz = nextZ - resident.z;
+        distance = Math.hypot(dx, dz);
+      }
+      if (distance > .005) {
+        const amount = Math.min(distance, (resident.reserved ? .9 : resident.speed) * delta);
+        resident.x += dx / distance * amount;
+        resident.z += dz / distance * amount;
+        resident.actor.rotation.y = Math.atan2(dx, dz);
+      }
+      const walking = distance > .08;
+      resident.actor.position.set(resident.x,
+        (resident.pasture ? .62 : .59) +
+          (walking ? Math.sin(now * .014 + resident.phase) * .025 : 0), resident.z);
+      const legs = resident.actor.userData.legs || [];
+      legs.forEach((leg, index) => {
+        leg.rotation.x = walking ? Math.sin(now * .014 + resident.phase + index * Math.PI) * .35 : 0;
+      });
+      const arms = resident.actor.userData.arms || [];
+      arms.forEach((arm, index) => {
+        arm.rotation.x = walking ? Math.sin(now * .014 + resident.phase + index * Math.PI) * -.22 : 0;
+      });
+    }
+  };
+  return { landmarks, world, updateTraffic, updateResidents };
 }

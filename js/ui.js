@@ -23,7 +23,6 @@ export function initUI({ onSelectPlanet, onHome }) {
   $('resetView').addEventListener('click',onHome);
   $('homeButton').addEventListener('click',e=>{e.preventDefault();onHome();});
   $('closePanel').addEventListener('click',onHome);
-  $('planetPanel').addEventListener('click',e=>{if(e.target.matches('[data-close]'))onHome();});
   $('closeProject').addEventListener('click',closeProject);
   $('projectModal').addEventListener('click',e=>{if(e.target.matches('[data-project-close]'))closeProject();});
   $('projectSearch').addEventListener('input',renderProjects);

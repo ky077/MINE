@@ -517,6 +517,46 @@ function createTraffic(world, pads, colors) {
   };
 }
 
+function decorativeIsland(world, kind, x, y, z) {
+  const group = new THREE.Group();
+  group.position.set(x, y, z);
+  world.add(group);
+  const grass = ['#83ae86', '#8ab9a3', '#a4c985'][kind];
+  islandBase(group, 1.55, grass, kind + 6);
+  if (kind === 0) {
+    const rock = material('#879a9b');
+    cone(group, .65, 1.1, 5, rock, -.35, 1.08, -.25);
+    cone(group, .42, .72, 5, material('#a9b7b0'), .45, .91, -.55);
+    for (const [tx, tz] of [[-.9,.55],[-.85,-.7],[.4,.7],[1.05,-.15]])
+      tree(group, tx, tz, .42, true);
+  } else if (kind === 1) {
+    const lake = cylinder(group, .7, .7, .045, 12,
+      material('#6bc5d8', { roughness: .25 }), -.15, .59, .05);
+    lake.scale.z = .78;
+    const stone = material('#aab5b3');
+    for (const [rx, rz, size] of [[.7,-.6,.27],[-.85,-.5,.23],[.8,.55,.2],[-.9,.55,.16]])
+      mesh(group, new THREE.IcosahedronGeometry(size, 0), stone, rx, .65, rz);
+    tree(group, .95, -.15, .38);
+  } else {
+    const hill = material('#7eaf71');
+    cone(group, .7, .48, 7, hill, -.45, .8, -.3);
+    cone(group, .5, .34, 7, material('#98c77d'), .55, .74, -.45);
+    for (const [fx, fz] of [[-.8,.6],[-.2,.95],[.45,.7],[.95,.2]]) {
+      cylinder(group, .07, .07, .05, 6, material('#edc778'), fx, .62, fz);
+    }
+    tree(group, 1.0, -.65, .32);
+  }
+  glassCanopy(group, 1.6, .55, ['#91b8df', '#77d7df', '#a8d899'][kind]);
+}
+
+function addDecorativeIslands(world) {
+  const corners = [[-19, -.75, -14], [18, .4, 14], [-18, .85, 15]];
+  corners.forEach(([x, y, z], kind) => {
+    decorativeIsland(world, kind, x + (Math.random() - .5) * 2,
+      y + (Math.random() - .5) * .55, z + (Math.random() - .5) * 2);
+  });
+}
+
 export function createIsland(scene, definitions) {
   const world = new THREE.Group();
   scene.add(world);
@@ -545,6 +585,7 @@ export function createIsland(scene, definitions) {
     glassCanopy(group, index === 1 ? 3.13 : index === 4 ? 3.38 : 3.23, .55, definition.color);
     landmarks.push(group);
   });
+  addDecorativeIslands(world);
   const updateTraffic = createTraffic(world, pads, ['#88c9f2', ...definitions.map(item => item.color)]);
   return { landmarks, world, updateTraffic };
 }

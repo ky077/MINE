@@ -28,8 +28,7 @@
     </aside>
     <div class="bottom-note">拖曳旋轉 <b>·</b> 滾輪縮放 <b>·</b> 點選星島開啟作品</div>
 
-    <section class="planet-panel" id="planetPanel" role="dialog" aria-modal="true" aria-labelledby="panelTitle" aria-hidden="true">
-      <div class="panel-backdrop" data-close></div>
+    <section class="planet-panel" id="planetPanel" role="dialog" aria-modal="false" aria-labelledby="panelTitle" aria-hidden="true">
       <div class="panel-card">
         <button class="close-button" id="closePanel" type="button" aria-label="關閉並返回星域全景">×</button>
         <p class="panel-kicker" id="panelKicker"></p>
@@ -48,12 +47,14 @@
       <div class="modal-backdrop" data-project-close></div>
       <article class="project-modal-card">
         <button class="close-button" id="closeProject" type="button" aria-label="關閉作品詳細資料">×</button>
-        <p class="project-modal-kicker" id="detailKicker"></p>
-        <h2 id="detailTitle"></h2>
-        <div class="detail-tags" id="detailTags"></div>
-        <p class="detail-year" id="detailYear"></p>
-        <div class="detail-gallery" id="detailGallery" aria-label="作品圖片"></div>
-        <a class="project-link is-disabled" id="detailLink" href="#" target="_blank" rel="noopener noreferrer" aria-disabled="true">尚無公開作品連結</a>
+        <div class="project-modal-content">
+          <p class="project-modal-kicker" id="detailKicker"></p>
+          <h2 id="detailTitle"></h2>
+          <div class="detail-tags" id="detailTags"></div>
+          <p class="detail-year" id="detailYear"></p>
+          <div class="detail-gallery" id="detailGallery" aria-label="作品圖片"></div>
+          <a class="project-link is-disabled" id="detailLink" href="#" target="_blank" rel="noopener noreferrer" aria-disabled="true">尚無公開作品連結</a>
+        </div>
       </article>
     </section>
     <div class="loading" id="loading" role="status" aria-live="polite">

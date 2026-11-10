@@ -7,7 +7,7 @@ import { createInteractionManager } from './interactions.js';
 import { initUI, openPlanet } from './ui.js';
 
 const canvas = document.getElementById('universe');
-const { scene, camera, renderer } = createScene(canvas);
+const { scene, camera, renderer, updateSky } = createScene(canvas);
 const { landmarks, updateTraffic } = createIsland(scene, planets);
 const controls = new OrbitControls(camera, canvas);
 controls.target.set(0, 0, 0);
@@ -142,6 +142,7 @@ function updateLabels() {
 
 function tick(now) {
   requestAnimationFrame(tick);
+  updateSky(now, reducedMotion.matches);
   updateTraffic(now, reducedMotion.matches);
   for (const group of landmarks) {
     const active = group.userData.islandId === hoveredId;
